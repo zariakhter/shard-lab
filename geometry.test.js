@@ -1,0 +1,14 @@
+const assert=require('node:assert/strict'),G=require('./geometry.js');
+const box=(x,y,w=10,h=10)=>[{x,y},{x:x+w,y},{x:x+w,y:y+h},{x,y:y+h}];
+const base={id:'S01',world:box(10,10)},test=(name,fn)=>{fn();console.log('PASS '+name);};
+test('Overlapping polygons rejected',()=>assert.equal(G.validate(box(15,15),[base],100,100,3).valid,false));
+test('Touching polygons rejected',()=>assert.equal(G.distance(box(20,10),base.world),0));
+test('Insufficient joint rejected',()=>assert.equal(G.validate(box(22,10),[base],100,100,3).valid,false));
+test('Sufficient joint accepted',()=>assert.equal(G.validate(box(24,10),[base],100,100,3).valid,true));
+test('Exact clearance accepted',()=>assert.equal(G.validate(box(23,10),[base],100,100,3).valid,true));
+test('Outside panel rejected',()=>assert.equal(G.validate(box(-1,5),[],100,100,3).valid,false));
+test('Rotated irregular polygon preserves area',()=>{const p=[{x:-4,y:-2},{x:3,y:-3},{x:6,y:1},{x:1,y:5},{x:-5,y:2}],q=G.transform(p,50,50,37);assert.ok(Math.abs(G.area(p)-G.area(q))<1e-8);assert.equal(G.validate(q,[],100,100,3).valid,true);});
+test('Boundary placement accepted',()=>assert.equal(G.validate(box(0,90),[],100,100,3).valid,true));
+test('Actual polygon coverage',()=>assert.equal(100*(G.area(box(0,0))+G.area(box(20,20)))/(100*100),2));
+test('Containment detected',()=>assert.equal(G.distance(box(1,1,2,2),box(0,0)),0));
+test('Concave polygons use edges, not bounding boxes',()=>{const l=[{x:0,y:0},{x:10,y:0},{x:10,y:3},{x:3,y:3},{x:3,y:10},{x:0,y:10}];assert.equal(G.distance(l,box(6,6,2,2)),3);});

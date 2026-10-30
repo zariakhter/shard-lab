@@ -1,0 +1,13 @@
+const assert=require('node:assert/strict');global.Geometry=require('./geometry.js');const P=require('./proposer.js');
+const rect=(x,y,w,h)=>[{x,y},{x:x+w,y},{x:x+w,y:y+h},{x,y:y+h}];
+const obstacles=[rect(0,0,100,45),rect(0,55,100,45),rect(0,45,45,10),rect(55,45,45,10)].map((world,i)=>({id:'wall'+i,world}));
+const tiny={id:'tiny',poly:rect(-2,-2,4,4),area:16};
+const fit=P.suggest([tiny],obstacles,100,100,3,'Best-fit',1,()=>0);
+assert.ok(fit&&!fit.stalled);assert.ok(fit.rescue,'Rescue scans an interior hole missed by initial samples');
+assert.equal(Geometry.validate(Geometry.transform(tiny.poly,fit.x,fit.y,fit.rotation),obstacles,100,100,3).valid,true);
+console.log('PASS small interior pocket filled by rescue scan');
+const giant={id:'giant',poly:rect(-100,-100,200,200),area:40000};
+const stopped=P.suggest([giant],obstacles,100,100,3,'Best-fit',1,()=>0);
+assert.ok(stopped.stalled);console.log('PASS no-fit search terminates after remaining inventory scan');
+assert.equal(P.suggest([tiny],[{id:'tiny',world:rect(0,0,4,4)}],100,100,3,'Best-fit',1,()=>0),null);
+console.log('PASS exhausted inventory terminates');
