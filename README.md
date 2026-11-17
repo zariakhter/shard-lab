@@ -4,6 +4,14 @@ A playable, browser-only ceramic nesting study. Open `index.html` in a modern br
 
 ## Play
 
+## Shard libraries
+
+The initial shards belong to **Original collection**. Library tabs filter both the visible inventory and automatic proposals. **All inventory** combines all libraries; cards identify their source library. Switching tabs cancels pending search/preview but preserves every placed shard and checks collisions against the entire bed.
+
+Click **+ New library**, enter a name, and create it. Expand **Add pieces to a library** to choose a destination, polygon family, exact width and height in inches (0.125–24 in), and color, then click **+ Add this piece**. Width and height describe the unrotated polygon bounds. **+ Add 20 random pieces** creates a varied batch with independent fixed physical sizes. Piece IDs stay unique across libraries. Bed resizing preserves all libraries and physical dimensions.
+
+Libraries, piece geometry, and the chosen tab are saved in this browser's local storage. They survive refresh on the same browser/site; arrangements still start empty after reload. Libraries do not sync between devices or browsers. A status message reports if browser storage is unavailable. **Generate new study** rebuilds the seeded original pieces while keeping manually added pieces and other libraries.
+
 The outer mold frame now resizes to the entered width-to-height proportions using one shared display scale, without stretching the geometry. Grid lines are always **3 × 3 inches (76.2 × 76.2 mm)** apart in real dimensions. A 4 ft × 2 ft bed therefore has 16 columns and 8 rows; partial cells appear when a side is not a multiple of 3 inches. The drawing fits the available screen width and a 560 px display height.
 
 Set **Bed dimensions** using separate feet and inches fields for width and height, then click **Apply bed size**. Inches may be decimal (for example, 6.5); whole feet plus inches are converted exactly using 25.4 mm per inch. Each side supports 3 inches–20 feet. Applying resets the current arrangement and preserves the existing library, including every polygon, assigned width/height, and area, while preserving the seed and joint clearance. The canvas changes aspect ratio and the heading shows feet and inches. Internal geometry stays in millimeters. For larger beds the rescue scan spacing scales to keep searches practical; the completion message reports the actual resolution.
