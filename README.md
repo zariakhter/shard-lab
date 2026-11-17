@@ -4,6 +4,8 @@ A playable, browser-only ceramic nesting study. Open `index.html` in a modern br
 
 ## Play
 
+The outer mold frame now resizes to the entered width-to-height proportions using one shared display scale, without stretching the geometry. Grid lines are always **6 × 6 inches (152.4 × 152.4 mm)** apart in real dimensions. A 4 ft × 2 ft bed therefore has 8 columns and 4 rows; partial cells appear when a side is not a multiple of 6 inches. The drawing fits the available screen width and a 560 px display height.
+
 Set **Bed dimensions** using separate feet and inches fields for width and height, then click **Apply bed size**. Inches may be decimal (for example, 6.5); whole feet plus inches are converted exactly using 25.4 mm per inch. Each side supports 3 inches–20 feet. Applying resets the current arrangement and regenerates a proportionally scaled shard library, while preserving the seed and joint clearance. The canvas changes aspect ratio and the heading shows imperial and metric dimensions. Internal geometry stays in millimeters. For larger beds the rescue scan spacing scales to keep searches practical; the completion message reports the actual resolution.
 
 The library mixes broad fragments, long slivers, tapered wedges, scalene triangles, elongated triangles, and chipped triangular outlines. Three-sided shards use unequal proportions; chipped triangles retain triangular silhouettes with broken edges. Inventory thumbnails fit each outline without clipping long pieces. Hover over a shard for its shape family, area, and status.
