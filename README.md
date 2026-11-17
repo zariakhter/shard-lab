@@ -4,7 +4,7 @@ A playable, browser-only ceramic nesting study. Open `index.html` in a modern br
 
 ## Play
 
-The outer mold frame now resizes to the entered width-to-height proportions using one shared display scale, without stretching the geometry. Grid lines are always **6 × 6 inches (152.4 × 152.4 mm)** apart in real dimensions. A 4 ft × 2 ft bed therefore has 8 columns and 4 rows; partial cells appear when a side is not a multiple of 6 inches. The drawing fits the available screen width and a 560 px display height.
+The outer mold frame now resizes to the entered width-to-height proportions using one shared display scale, without stretching the geometry. Grid lines are always **3 × 3 inches (76.2 × 76.2 mm)** apart in real dimensions. A 4 ft × 2 ft bed therefore has 16 columns and 8 rows; partial cells appear when a side is not a multiple of 3 inches. The drawing fits the available screen width and a 560 px display height.
 
 Set **Bed dimensions** using separate feet and inches fields for width and height, then click **Apply bed size**. Inches may be decimal (for example, 6.5); whole feet plus inches are converted exactly using 25.4 mm per inch. Each side supports 3 inches–20 feet. Applying resets the current arrangement and regenerates a proportionally scaled shard library, while preserving the seed and joint clearance. The canvas changes aspect ratio and the heading shows imperial and metric dimensions. Internal geometry stays in millimeters. For larger beds the rescue scan spacing scales to keep searches practical; the completion message reports the actual resolution.
 
@@ -70,4 +70,5 @@ This is a visual finish preview, not a simulation of material flow, curing, or f
 This delivery implements **Phases 1–2**, plus an expanded inventory and improved geometric packing search. Comparative experiments, extended settings, and SVG/PNG/CSV/JSON exports are not included yet. The journal and score provide immediate study feedback. Data stays in browser memory and is cleared on reload.
 
 This is a **2D geometric nesting simulation**, not a manufacturing or structural model. It does not predict shard curvature, thickness, fracture, suction-gripper performance, or mortar-panel durability.
+
 

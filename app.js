@@ -55,7 +55,7 @@ function refresh(){const area=placed.reduce((s,p)=>s+p.area,0),coverage=100*area
   $('inventory').replaceChildren();shards.forEach(s=>{const used=placed.some(p=>p.id===s.id),b=document.createElement('button');b.className='shard'+(used?' used':'')+(selected===s?' selected':'');b.disabled=used;const xs=s.poly.map(p=>p.x),ys=s.poly.map(p=>p.y),width=Math.max(...xs)-Math.min(...xs),height=Math.max(...ys)-Math.min(...ys);b.title=s.id+' · '+s.kind+' · '+s.area.toFixed(0)+' mm² · '+(used?'Placed':'Available');b.innerHTML='<svg viewBox="'+(Math.min(...xs)-5)+' '+(Math.min(...ys)-5)+' '+(width+10)+' '+(height+10)+'" aria-hidden="true"><polygon points="'+s.poly.map(p=>p.x+','+p.y).join(' ')+'" fill="'+s.color+'" stroke="#41483c" stroke-width="1"/></svg><span>'+s.id+'<small>'+Math.round(width)+' × '+Math.round(height)+'</small></span>';b.onpointerdown=e=>{if(e.button!==0)return;choose(s);dragging=true;};$('inventory').append(b);});
   $('log').replaceChildren();if(!journal.length)$('log').innerHTML='<li class="empty">Your first arrangement starts here.</li>';journal.slice().reverse().forEach(item=>{const li=document.createElement('li');li.textContent=item;$('log').append(li);});draw();}
 function bedView(width,height,available,maxHeight=560){const scale=Math.min(Math.max(1,available-2)/width,maxHeight/height);return {width:width*scale,height:height*scale,scale};}
-const GRID_MM=6*25.4;
+const GRID_MM=3*25.4;
 function draw(){const available=canvas.parentElement?canvas.parentElement.clientWidth:600,view=bedView(W,H,available),dpr=window.devicePixelRatio||1;
 canvas.style.width=view.width+'px';canvas.style.height=view.height+'px';
 canvas.width=Math.round(view.width*dpr);canvas.height=Math.round(view.height*dpr);ctx.setTransform(canvas.width/W,0,0,canvas.height/H,0,0);ctx.clearRect(0,0,W,H);ctx.lineWidth=1/view.scale;ctx.strokeStyle='#d4d9cb';for(let x=GRID_MM;x<W-1e-8;x+=GRID_MM){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}for(let y=GRID_MM;y<H-1e-8;y+=GRID_MM){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
@@ -130,6 +130,7 @@ $('fillerPreset').onchange=()=>{fillerColor=$('fillerPreset').value;$('fillerCol
 $('editMosaic').onclick=()=>{clearFinish();message('Back to arranging. Your placed shards are preserved.');draw();};
 $('bedSizeForm').onsubmit=applyBedSize;
 new ResizeObserver(draw).observe(canvas);generate();
+
 
 
 

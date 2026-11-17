@@ -53,15 +53,16 @@ const dimensions=run('[W,H].join()');sizeBed(0,0,3,0);assert.equal(run('[W,H].jo
 sizeBed(1,0.5,2,3.25);assert.ok(Math.abs(run('W')-317.5)<1e-8);assert.ok(Math.abs(run('H')-692.15)<1e-8);
 run('suggestMove()');flush();assert.equal(run('placed.every((s,i)=>G.validate(s.world,placed.filter((_,j)=>i!==j),W,H,gap).valid)'),true);
 console.log('PASS feet/inches conversion, fractional inches, invalid size preservation, scaled inventory, and resized geometry');
-assert.ok(Math.abs(run('GRID_MM')-152.4)<1e-10);
+assert.ok(Math.abs(run('GRID_MM')-76.2)<1e-10);
 sizeBed(4,0,2,0);assert.equal(element('dimensions').textContent,'4 ft 0 in × 2 ft 0 in');
 assert.ok(Math.abs(parseFloat(element('board').style.width)/parseFloat(element('board').style.height)-2)<1e-10);
 sizeBed(2,0,4,0);assert.ok(Math.abs(parseFloat(element('board').style.width)/parseFloat(element('board').style.height)-.5)<1e-10);
-assert.equal(run('Math.ceil(W/GRID_MM)'),4);assert.equal(run('Math.ceil(H/GRID_MM)'),8);
-console.log('PASS outer bed frame proportions in both orientations and fixed six-inch grid');
+assert.equal(run('Math.ceil(W/GRID_MM)'),8);assert.equal(run('Math.ceil(H/GRID_MM)'),16);
+console.log('PASS outer bed frame proportions in both orientations and fixed three-inch grid');
 global.Geometry=require('./geometry.js');
 const proposer=require('./proposer.js');
 (async()=>{let polls=0;const library=JSON.parse(run('JSON.stringify(shards)'));const result=await proposer.suggestAsync([library,[],400,300,3,'Best-fit',20,()=>.5],()=>++polls>1);assert.equal(result,null);assert.equal(polls,2);console.log('PASS asynchronous search cancellation between shards');})().catch(error=>{console.error(error);process.exitCode=1;});
+
 
 
 
