@@ -45,10 +45,10 @@ function* search(shards,placed,width,height,gap,strategy,effort,rng,explore=fals
  // Before declaring the bed full, scan free-space centers, including interior pockets.
  // This is a finite 4 mm / 15 degree search, not a mathematical infeasibility proof.
  if(!best){
-  const centers=[];
+  const centers=[],scanStep=Math.max(4,Math.min(width,height)/75);
   const pointSegment=(p,a,b)=>{const dx=b.x-a.x,dy=b.y-a.y,t=Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.y-a.y)*dy)/(dx*dx+dy*dy||1)));return Math.hypot(p.x-a.x-t*dx,p.y-a.y-t*dy);};
-  for(let y=2;y<height;y+=4){
-   for(let x=2;x<width;x+=4){const p={x,y};let free=Math.min(x,y,width-x,height-y);
+  for(let y=scanStep/2;y<height;y+=scanStep){
+   for(let x=scanStep/2;x<width;x+=scanStep){const p={x,y};let free=Math.min(x,y,width-x,height-y);
     for(const s of obstacles){const box=s.box;if(x<box.minX-free||x>box.maxX+free||y<box.minY-free||y>box.maxY+free)continue;
      if(Geometry.inside(p,s.world)){free=0;break;}
      for(let i=0;i<s.world.length;i++)free=Math.min(free,Math.max(0,pointSegment(p,s.world[i],s.world[(i+1)%s.world.length])-gap));
@@ -76,6 +76,7 @@ function suggest(...args){const steps=search(...args);let step;do{step=steps.nex
 async function suggestAsync(args,cancelled){const steps=search(...args);while(!cancelled()){const step=steps.next();if(step.done)return step.value;await new Promise(resolve=>setTimeout(resolve,0));}return null;}
 if(typeof module!=='undefined')module.exports={suggest,suggestAsync};else root.Proposer={suggest,suggestAsync};
 })(typeof window!=='undefined'?window:globalThis);
+
 
 
 

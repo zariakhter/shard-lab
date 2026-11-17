@@ -1,7 +1,7 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 const elements=new Map(),timers=new Map();let timerId=0;
 const context2d=new Proxy({},{get:(t,k)=>t[k]||(()=>{}),set:(t,k,v)=>(t[k]=v,true)});
-function element(id){if(elements.has(id))return elements.get(id);const el={value:id==='seed'?'1847':id==='strategy'?'Largest-first':id==='effort'?'80':'3',children:[],style:{},disabled:false,replaceChildren(){this.children=[];},append(x){this.children.push(x);},addEventListener(){},getBoundingClientRect(){return {width:600,height:450,left:0,top:0};},getContext(){return context2d;},focus(){},setPointerCapture(){}};elements.set(id,el);return el;}
+function element(id){if(elements.has(id))return elements.get(id);const el={value:id==='seed'?'1847':id==='strategy'?'Largest-first':id==='effort'?'80':'3',children:[],style:{setProperty(){}},disabled:false,replaceChildren(){this.children=[];},append(x){this.children.push(x);},addEventListener(){},getBoundingClientRect(){return {width:600,height:450,left:0,top:0};},getContext(){return context2d;},focus(){},setPointerCapture(){}};elements.set(id,el);return el;}
 const sandbox={console,document:{getElementById:element,createElement:()=>element('el'+Math.random()),addEventListener(){}},window:{devicePixelRatio:1},ResizeObserver:class{observe(){}},setTimeout(fn){timers.set(++timerId,fn);return timerId;},clearTimeout(id){timers.delete(id);}};
 vm.createContext(sandbox);for(const name of ['geometry.js','proposer.js','app.js']){vm.runInContext(fs.readFileSync(__dirname+'/'+name,'utf8'),sandbox);if(name==='geometry.js')sandbox.Geometry=sandbox.window.Geometry;if(name==='proposer.js')sandbox.Proposer=sandbox.window.Proposer;}
 const run=s=>vm.runInContext(s,sandbox);
@@ -45,8 +45,17 @@ element('editMosaic').onclick();assert.equal(run('baked'),false);assert.equal(ru
 element('bake').onclick();element('reset').onclick();frames.shift()(2800);assert.equal(run('baked'),false);assert.equal(run('finishProgress'),0);
 element('bake').onclick();assert.equal(run('baking'),false);
 console.log('PASS completion banner, animated bake, live filler colors, editing, and animation cancellation');
+function sizeBed(wf,wi,hf,hi){for(const [id,v] of Object.entries({bedWidthFeet:wf,bedWidthInches:wi,bedHeightFeet:hf,bedHeightInches:hi}))element(id).value=String(v);element('bedSizeForm').onsubmit({preventDefault(){}});}
+delete sandbox.requestAnimationFrame;
+sizeBed(2,6,3,0);assert.ok(Math.abs(run('W')-762)<1e-8);assert.ok(Math.abs(run('H')-914.4)<1e-8);assert.equal(run('placed.length'),0);assert.equal(run('running'),false);
+assert.ok(run('shards.reduce((a,s)=>a+s.area,0)>W*H*2'));
+const dimensions=run('[W,H].join()');sizeBed(0,0,3,0);assert.equal(run('[W,H].join()'),dimensions);assert.ok(element('bedSizeError').textContent);
+sizeBed(1,0.5,2,3.25);assert.ok(Math.abs(run('W')-317.5)<1e-8);assert.ok(Math.abs(run('H')-692.15)<1e-8);
+run('suggestMove()');flush();assert.equal(run('placed.every((s,i)=>G.validate(s.world,placed.filter((_,j)=>i!==j),W,H,gap).valid)'),true);
+console.log('PASS feet/inches conversion, fractional inches, invalid size preservation, scaled inventory, and resized geometry');
 global.Geometry=require('./geometry.js');
 const proposer=require('./proposer.js');
 (async()=>{let polls=0;const library=JSON.parse(run('JSON.stringify(shards)'));const result=await proposer.suggestAsync([library,[],400,300,3,'Best-fit',20,()=>.5],()=>++polls>1);assert.equal(result,null);assert.equal(polls,2);console.log('PASS asynchronous search cancellation between shards');})().catch(error=>{console.error(error);process.exitCode=1;});
+
 
 

@@ -4,6 +4,8 @@ A playable, browser-only ceramic nesting study. Open `index.html` in a modern br
 
 ## Play
 
+Set **Bed dimensions** using separate feet and inches fields for width and height, then click **Apply bed size**. Inches may be decimal (for example, 6.5); whole feet plus inches are converted exactly using 25.4 mm per inch. Each side supports 3 inches–20 feet. Applying resets the current arrangement and regenerates a proportionally scaled shard library, while preserving the seed and joint clearance. The canvas changes aspect ratio and the heading shows imperial and metric dimensions. Internal geometry stays in millimeters. For larger beds the rescue scan spacing scales to keep searches practical; the completion message reports the actual resolution.
+
 The library mixes broad fragments, long slivers, tapered wedges, scalene triangles, elongated triangles, and chipped triangular outlines. Three-sided shards use unequal proportions; chipped triangles retain triangular silhouettes with broken edges. Inventory thumbnails fit each outline without clipping long pieces. Hover over a shard for its shape family, area, and status.
 
 The mold measures **400 × 300 mm**. The seeded inventory generates larger irregular fragments until their total area exceeds twice the bed area, then adds **35 small shards and 80 extra tiny shards** for residual pockets. Tiny shards use radii of 4–9 mm before irregularity. The exact count depends on the seed. The library scrolls and reports remaining material area.

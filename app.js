@@ -1,6 +1,6 @@
 'use strict';
 const G=Geometry,$=id=>document.getElementById(id),canvas=$('board'),ctx=canvas.getContext('2d');
-const W=400,H=300,colors=['#bc7d63','#91a58e','#8fa7b4','#c3a15d','#ddd1b7'];
+let W=400,H=300;const colors=['#bc7d63','#91a58e','#8fa7b4','#c3a15d','#ddd1b7'];
 let shards=[],placed=[],selected=null,preview=null,gap=3,rejected=0,journal=[],dragging=false;
 let proposalTimer=null,nextTimer=null,running=false,proposalSource='Manual',searchRng,searchId=0;
 let finishProgress=0,baking=false,baked=false,bakeEpoch=0,fillerColor='#d7cbb4';
@@ -8,10 +8,21 @@ function clearFinish(){bakeEpoch++;finishProgress=0;baking=false;baked=false;$('
 function pauseSearch(){searchId++;clearTimeout(proposalTimer);clearTimeout(nextTimer);proposalTimer=null;nextTimer=null;running=false;$('run').disabled=false;$('pause').disabled=true;$('suggest').disabled=false;}
 function manualControl(){pauseSearch();clearFinish();proposalSource='Manual';}
 function random(seed){return ()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return ((t^t>>>14)>>>0)/4294967296;};}
+function imperial(mm){let inches=Math.round(mm/25.4*1000)/1000;let feet=Math.floor(inches/12);inches=Math.round((inches-feet*12)*1000)/1000;return feet+' ft '+inches+' in';}
+function applyBedSize(event){
+  event.preventDefault();
+  const values=['bedWidthFeet','bedWidthInches','bedHeightFeet','bedHeightInches'].map(id=>$(id).value.trim());
+  const n=values.map(Number),width=(n[0]*12+n[1])*25.4,height=(n[2]*12+n[3])*25.4;
+  if(values.some(v=>v==='')||n.some(v=>!Number.isFinite(v)||v<0)||!Number.isInteger(n[0])||!Number.isInteger(n[2])||width<76.2-1e-8||height<76.2-1e-8||width>6096+1e-8||height>6096+1e-8){$('bedSizeError').textContent='Enter whole feet and nonnegative inches. Each total side must be between 3 inches and 20 feet.';return;}
+  W=width;H=height;$('bedSizeError').textContent='';generate();
+  message('Bed resized to '+imperial(W)+' × '+imperial(H)+'. A fresh shard library is ready.','good');
+}
 function generate(){
   manualControl();searchRng=random((Number($('seed').value)>>>0)^98765);
   const r=random(Number($('seed').value)>>>0);shards=[];let total=0;
+  const materialScale=Math.sqrt(W*H/(400*300));
   function add(size,forcedKind){
+    size*=materialScale;
     const kinds=['Long sliver','Scalene triangle','Long triangle','Tapered wedge','Chipped triangle','Broad fragment','Chipped fragment','Long sliver'];
     const kind=forcedKind||kinds[shards.length%kinds.length];
     const n=5+Math.floor(r()*4);
@@ -94,7 +105,7 @@ $('strategy').onchange=pauseSearch;
 function showCompletion(exhausted){
   selected=null;preview=null;dragging=false;
   $('completion').hidden=false;
-  $('completion').innerHTML=exhausted?'<strong>All shards placed — ready to bake.</strong><p>Your library is empty. Bake to preview filler in the remaining spaces.</p>':'<strong>No more fits found — ready to bake.</strong><p>All remaining shards were checked with edge alignments and a 4 mm / 15° gap scan. No valid placement was found. A different arrangement may produce other fits.</p>';
+  $('completion').innerHTML=exhausted?'<strong>All shards placed — ready to bake.</strong><p>Your library is empty. Bake to preview filler in the remaining spaces.</p>':'<strong>No more fits found — ready to bake.</strong><p>All remaining shards were checked with edge alignments and a '+Math.max(4,Math.min(W,H)/75).toFixed(1)+' mm / 15° gap scan. No valid placement was found. A different arrangement may produce other fits.</p>';
   message(exhausted?'All shards placed. Click Bake to finish.':'No more valid fits found in this search. Click Bake to finish the mosaic.','good');draw();
 }
 function bakeMosaic(){
@@ -113,7 +124,9 @@ $('bake').onclick=bakeMosaic;
 $('fillerColor').oninput=()=>{fillerColor=$('fillerColor').value;$('fillerPreset').value='';draw();};
 $('fillerPreset').onchange=()=>{fillerColor=$('fillerPreset').value;$('fillerColor').value=fillerColor;draw();};
 $('editMosaic').onclick=()=>{clearFinish();message('Back to arranging. Your placed shards are preserved.');draw();};
+$('bedSizeForm').onsubmit=applyBedSize;
 new ResizeObserver(draw).observe(canvas);generate();
+
 
 
 
