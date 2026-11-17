@@ -14,15 +14,14 @@ function applyBedSize(event){
   const values=['bedWidthFeet','bedWidthInches','bedHeightFeet','bedHeightInches'].map(id=>$(id).value.trim());
   const n=values.map(Number),width=(n[0]*12+n[1])*25.4,height=(n[2]*12+n[3])*25.4;
   if(values.some(v=>v==='')||n.some(v=>!Number.isFinite(v)||v<0)||!Number.isInteger(n[0])||!Number.isInteger(n[2])||width<76.2-1e-8||height<76.2-1e-8||width>6096+1e-8||height>6096+1e-8){$('bedSizeError').textContent='Enter whole feet and nonnegative inches. Each total side must be between 3 inches and 20 feet.';return;}
-  W=width;H=height;$('bedSizeError').textContent='';generate();
-  message('Bed resized to '+imperial(W)+' × '+imperial(H)+'. A fresh shard library is ready.','good');
+  manualControl();W=width;H=height;$('bedSizeError').textContent='';
+  placed=[];selected=null;preview=null;rejected=0;journal=[];searchRng=random((Number($('seed').value)>>>0)^98765);refresh();
+  message('Bed resized to '+imperial(W)+' × '+imperial(H)+'. The same shards retain their assigned physical dimensions.','good');
 }
 function generate(){
   manualControl();searchRng=random((Number($('seed').value)>>>0)^98765);
   const r=random(Number($('seed').value)>>>0);shards=[];let total=0;
-  const materialScale=Math.sqrt(W*H/(400*300));
   function add(size,forcedKind){
-    size*=materialScale;
     const kinds=['Long sliver','Scalene triangle','Long triangle','Tapered wedge','Chipped triangle','Broad fragment','Chipped fragment','Long sliver'];
     const kind=forcedKind||kinds[shards.length%kinds.length];
     const n=5+Math.floor(r()*4);
@@ -38,9 +37,10 @@ function generate(){
     if(kind==='Chipped fragment')poly[1]={x:poly[1].x*.55,y:poly[1].y*.55};
     const cx=poly.reduce((s,p)=>s+p.x,0)/poly.length,cy=poly.reduce((s,p)=>s+p.y,0)/poly.length;
     poly=poly.map(p=>({x:p.x-cx,y:p.y-cy}));const area=G.area(poly);
-    shards.push({id:'S'+String(shards.length+1).padStart(3,'0'),poly,kind,color:colors[shards.length%5],rotation:0,area});total+=area;
+    const widthMm=Math.max(...poly.map(p=>p.x))-Math.min(...poly.map(p=>p.x)),heightMm=Math.max(...poly.map(p=>p.y))-Math.min(...poly.map(p=>p.y));
+    shards.push({id:'S'+String(shards.length+1).padStart(3,'0'),poly,kind,color:colors[shards.length%5],rotation:0,area,widthMm,heightMm});total+=area;
   }
-  while(total<W*H*2)add(29+r()*24);
+  while(total<240000)add(29+r()*24);
   for(let i=0;i<35;i++)add(9+r()*15);
   for(let i=0;i<80;i++)add(4+r()*5);
   for(let i=0;i<32;i++)add(12+r()*16,['Long sliver','Long triangle','Scalene triangle','Chipped triangle'][i%4]);
@@ -52,7 +52,13 @@ function verdict(){return G.validate(G.transform(selected.poly,preview.x,preview
 function choose(shard){if(placed.some(s=>s.id===shard.id))return;manualControl();selected=shard;preview={x:W/2,y:H/2};refresh();check();}
 function check(){if(!selected||!preview)return;const v=verdict();message(selected.id+' · '+selected.rotation+'° · '+v.reason,v.valid?'good':'bad');draw();}
 function refresh(){const area=placed.reduce((s,p)=>s+p.area,0),coverage=100*area/(W*H);$('coverage').innerHTML=coverage.toFixed(1)+'<span>%</span>';$('meter').style.width=coverage+'%';$('placed').textContent=placed.length+' / '+shards.length;$('rejected').textContent=rejected;$('remaining').textContent=(shards.length-placed.length)+' AVAILABLE';$('dimensions').textContent=imperial(W)+' × '+imperial(H);$('gap').disabled=placed.length>0;
-  $('inventory').replaceChildren();shards.forEach(s=>{const used=placed.some(p=>p.id===s.id),b=document.createElement('button');b.className='shard'+(used?' used':'')+(selected===s?' selected':'');b.disabled=used;const xs=s.poly.map(p=>p.x),ys=s.poly.map(p=>p.y),width=Math.max(...xs)-Math.min(...xs),height=Math.max(...ys)-Math.min(...ys);b.title=s.id+' · '+s.kind+' · '+s.area.toFixed(0)+' mm² · '+(used?'Placed':'Available');b.innerHTML='<svg viewBox="'+(Math.min(...xs)-5)+' '+(Math.min(...ys)-5)+' '+(width+10)+' '+(height+10)+'" aria-hidden="true"><polygon points="'+s.poly.map(p=>p.x+','+p.y).join(' ')+'" fill="'+s.color+'" stroke="#41483c" stroke-width="1"/></svg><span>'+s.id+'<small>'+Math.round(width)+' × '+Math.round(height)+'</small></span>';b.onpointerdown=e=>{if(e.button!==0)return;choose(s);dragging=true;};$('inventory').append(b);});
+  $('inventory').replaceChildren();shards.forEach(s=>{
+    const used=placed.some(p=>p.id===s.id),b=document.createElement('button');b.className='shard'+(used?' used':'')+(selected===s?' selected':'');b.disabled=used;
+    const xs=s.poly.map(p=>p.x),ys=s.poly.map(p=>p.y),width=s.widthMm??Math.max(...xs)-Math.min(...xs),height=s.heightMm??Math.max(...ys)-Math.min(...ys);
+    b.title=s.id+' · '+s.kind+' · '+width.toFixed(1)+' × '+height.toFixed(1)+' mm · '+s.area.toFixed(0)+' mm² · '+(used?'Placed':'Available');
+    b.innerHTML='<svg viewBox="'+(Math.min(...xs)-5)+' '+(Math.min(...ys)-5)+' '+(width+10)+' '+(height+10)+'" aria-hidden="true"><polygon points="'+s.poly.map(p=>p.x+','+p.y).join(' ')+'" fill="'+s.color+'" stroke="#41483c" stroke-width="1"/></svg><span>'+s.id+'<small>'+(width/25.4).toFixed(2)+' × '+(height/25.4).toFixed(2)+' in</small></span><small class="shard-metric">'+width.toFixed(1)+' × '+height.toFixed(1)+' mm</small>';
+    b.onpointerdown=e=>{if(e.button!==0)return;choose(s);dragging=true;};$('inventory').append(b);
+  });
   $('log').replaceChildren();if(!journal.length)$('log').innerHTML='<li class="empty">Your first arrangement starts here.</li>';journal.slice().reverse().forEach(item=>{const li=document.createElement('li');li.textContent=item;$('log').append(li);});draw();}
 function bedView(width,height,available,maxHeight=560){const scale=Math.min(Math.max(1,available-2)/width,maxHeight/height);return {width:width*scale,height:height*scale,scale};}
 const GRID_MM=3*25.4;

@@ -47,12 +47,16 @@ element('bake').onclick();assert.equal(run('baking'),false);
 console.log('PASS completion banner, animated bake, live filler colors, editing, and animation cancellation');
 function sizeBed(wf,wi,hf,hi){for(const [id,v] of Object.entries({bedWidthFeet:wf,bedWidthInches:wi,bedHeightFeet:hf,bedHeightInches:hi}))element(id).value=String(v);element('bedSizeForm').onsubmit({preventDefault(){}});}
 delete sandbox.requestAnimationFrame;
+run('generate()');const fixedLibrary=run('JSON.stringify(shards)');
 sizeBed(2,6,3,0);assert.ok(Math.abs(run('W')-762)<1e-8);assert.ok(Math.abs(run('H')-914.4)<1e-8);assert.equal(run('placed.length'),0);assert.equal(run('running'),false);
-assert.ok(run('shards.reduce((a,s)=>a+s.area,0)>W*H*2'));
+assert.equal(run('JSON.stringify(shards)'),fixedLibrary);
+assert.ok(run('shards.every(s=>s.widthMm>0&&s.heightMm>0)'));
 const dimensions=run('[W,H].join()');sizeBed(0,0,3,0);assert.equal(run('[W,H].join()'),dimensions);assert.ok(element('bedSizeError').textContent);
 sizeBed(1,0.5,2,3.25);assert.ok(Math.abs(run('W')-317.5)<1e-8);assert.ok(Math.abs(run('H')-692.15)<1e-8);
+assert.equal(run('JSON.stringify(shards)'),fixedLibrary);run('generate()');assert.equal(run('JSON.stringify(shards)'),fixedLibrary);
+const relativeWidth=run('shards[0].widthMm/W');sizeBed(5,0,4,0);assert.ok(run('shards[0].widthMm/W')<relativeWidth);assert.equal(run('JSON.stringify(shards)'),fixedLibrary);
 run('suggestMove()');flush();assert.equal(run('placed.every((s,i)=>G.validate(s.world,placed.filter((_,j)=>i!==j),W,H,gap).valid)'),true);
-console.log('PASS feet/inches conversion, fractional inches, invalid size preservation, scaled inventory, and resized geometry');
+console.log('PASS feet/inches conversion, fixed shard dimensions across beds, same-seed regeneration, and resized geometry');
 assert.ok(Math.abs(run('GRID_MM')-76.2)<1e-10);
 sizeBed(4,0,2,0);assert.equal(element('dimensions').textContent,'4 ft 0 in × 2 ft 0 in');
 assert.ok(Math.abs(parseFloat(element('board').style.width)/parseFloat(element('board').style.height)-2)<1e-10);

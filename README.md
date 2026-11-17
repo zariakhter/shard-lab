@@ -6,11 +6,11 @@ A playable, browser-only ceramic nesting study. Open `index.html` in a modern br
 
 The outer mold frame now resizes to the entered width-to-height proportions using one shared display scale, without stretching the geometry. Grid lines are always **3 × 3 inches (76.2 × 76.2 mm)** apart in real dimensions. A 4 ft × 2 ft bed therefore has 16 columns and 8 rows; partial cells appear when a side is not a multiple of 3 inches. The drawing fits the available screen width and a 560 px display height.
 
-Set **Bed dimensions** using separate feet and inches fields for width and height, then click **Apply bed size**. Inches may be decimal (for example, 6.5); whole feet plus inches are converted exactly using 25.4 mm per inch. Each side supports 3 inches–20 feet. Applying resets the current arrangement and regenerates a proportionally scaled shard library, while preserving the seed and joint clearance. The canvas changes aspect ratio and the heading shows imperial and metric dimensions. Internal geometry stays in millimeters. For larger beds the rescue scan spacing scales to keep searches practical; the completion message reports the actual resolution.
+Set **Bed dimensions** using separate feet and inches fields for width and height, then click **Apply bed size**. Inches may be decimal (for example, 6.5); whole feet plus inches are converted exactly using 25.4 mm per inch. Each side supports 3 inches–20 feet. Applying resets the current arrangement and preserves the existing library, including every polygon, assigned width/height, and area, while preserving the seed and joint clearance. The canvas changes aspect ratio and the heading shows feet and inches. Internal geometry stays in millimeters. For larger beds the rescue scan spacing scales to keep searches practical; the completion message reports the actual resolution.
 
 The library mixes broad fragments, long slivers, tapered wedges, scalene triangles, elongated triangles, and chipped triangular outlines. Three-sided shards use unequal proportions; chipped triangles retain triangular silhouettes with broken edges. Inventory thumbnails fit each outline without clipping long pieces. Hover over a shard for its shape family, area, and status.
 
-The mold measures **400 × 300 mm**. The seeded inventory generates larger irregular fragments until their total area exceeds twice the bed area, then adds **35 small shards and 80 extra tiny shards** for residual pockets. Tiny shards use radii of 4–9 mm before irregularity. The exact count depends on the seed. The library scrolls and reports remaining material area.
+The mold initially measures **400 × 300 mm**. The seeded inventory generates larger irregular fragments until their total area exceeds a fixed 240,000 mm², then adds **35 small shards and 80 extra tiny shards** for residual pockets. Tiny shards use radii of 4–9 mm before irregularity. The exact count depends on the seed. Bed size does not affect shard size or the generated inventory. Each library card shows fixed unrotated width × height in inches and millimeters; rotation changes the orientation but never the physical geometry. Larger beds may exhaust this finite material supply before filling. The library scrolls and reports remaining material area.
 
 1. Select a fragment, then click the mold to set its preview position; or drag from the library and release over the mold.
 2. Green indicates a valid proposal; red indicates a boundary, overlap, or joint-clearance violation.
@@ -70,5 +70,6 @@ This is a visual finish preview, not a simulation of material flow, curing, or f
 This delivery implements **Phases 1–2**, plus an expanded inventory and improved geometric packing search. Comparative experiments, extended settings, and SVG/PNG/CSV/JSON exports are not included yet. The journal and score provide immediate study feedback. Data stays in browser memory and is cleared on reload.
 
 This is a **2D geometric nesting simulation**, not a manufacturing or structural model. It does not predict shard curvature, thickness, fracture, suction-gripper performance, or mortar-panel durability.
+
 
 
