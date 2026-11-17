@@ -4,6 +4,20 @@ A playable, browser-only ceramic nesting study. Open `index.html` in a modern br
 
 ## Play
 
+## Import real shards from photos
+
+Click **Import photographed shards**. JPEG, PNG, and WebP photos (under 30 MB / 65 MP) are processed locally. Use separated pieces on a contrasting matte grid, with even lighting; put the camera directly above it. Keep the whole outline of every piece inside a visible reference rectangle on the mat.
+
+1. Upload the photo. Click four known grid intersections around the pieces in this order: **top-left, top-right, bottom-right, bottom-left**.
+2. Enter that rectangle's real width and height using the printed mat ruler, in inches or millimeters. Click **Calibrate mat**. Four-point planar perspective correction maps photo pixels to real millimeters. The app does not guess units or read ruler numerals automatically.
+3. Click a clean part of the corrected mat between grid lines to sample its background, then **Detect pieces**. Adjust contrast, grid-line removal, or minimum area and detect again if necessary. The algorithm uses real pixel segmentation, morphological opening to remove thin grid lines, connected components, and concave boundary tracing; no convex hull replaces the measured outline.
+4. Review each numbered polygon and its dimensions. Deselect unwanted detections. Cut-off shapes and shapes with suspected holes are excluded. **Retrace** replaces a bad outline; **Trace new piece** lets you mark a missed piece. Click vertices in order and **Finish outline**; crossing outlines are rejected.
+5. Select the destination library, check the review confirmation, and save. Every photographed shard gets fixed millimeter geometry, width, height, area, perimeter, thumbnail, source photo ID/name, calibration corners and dimensions, homography, pixel scale, original-photo outline coordinates, method/settings, and timestamp. These same polygon dimensions drive collision and clearance checks on any bed size.
+
+The original photo is kept in IndexedDB (`shard-lab-photos`) in this browser; library metadata and small cropped previews use local storage. Photos are not uploaded to GitHub or an AI service. Clearing site data removes these records; they do not sync to another device. **Export photo measurements (JSON)** downloads all photographed-shard measurements and calibration records, including cropped previews but not the full originals. Retain your original image files separately for a portable archive.
+
+Measurements are estimates of a planar silhouette. Incorrect reference spans, camera lens distortion, uneven illumination, shadows, similar mat/shard colors, touching pieces, thickness and curved shards reduce accuracy. Four-point correction handles a planar angled photograph but does not correct lens distortion or parallax from raised pieces. This is not metrology or a fabrication guarantee. Minimum pixel resolution and polygon simplification also limit small-detail accuracy. Run `node photo-core.test.js` for calibration, pixel segmentation/grid removal, concavity, area/dimension, clipping, and manual-outline tests.
+
 ## Shard libraries
 
 The initial shards belong to **Original collection**. Library tabs filter both the visible inventory and automatic proposals. **All inventory** combines all libraries; cards identify their source library. Switching tabs cancels pending search/preview but preserves every placed shard and checks collisions against the entire bed.

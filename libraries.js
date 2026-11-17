@@ -4,8 +4,8 @@ let libraries=[{id:'original',name:'Original collection'}],activeLibrary='origin
 function inventoryForView(){return activeLibrary==='all'?shards:shards.filter(s=>(s.libraryId||'original')===activeLibrary);}
 function libraryName(id){return libraries.find(l=>l.id===id)?.name||'Original collection';}
 function saveLibraries(){
-  try{localStorage.setItem(LIBRARY_KEY,JSON.stringify({libraries,activeLibrary,librarySerial,pieceSerial,seed:$('seed').value,shards:shards.map(s=>({...s,rotation:0}))}));$('librarySaveStatus').textContent='Libraries saved in this browser.';}
-  catch(error){$('librarySaveStatus').textContent='Browser storage unavailable or full. Keep this tab open to retain your libraries.';}
+  try{localStorage.setItem(LIBRARY_KEY,JSON.stringify({libraries,activeLibrary,librarySerial,pieceSerial,seed:$('seed').value,shards:shards.map(s=>({...s,rotation:0}))}));$('librarySaveStatus').textContent='Libraries saved in this browser.';return true;}
+  catch(error){$('librarySaveStatus').textContent='Browser storage unavailable or full. Keep this tab open to retain your libraries.';return false;}
 }
 function renderLibraries(){
   $('libraryTabs').replaceChildren();
@@ -13,6 +13,7 @@ function renderLibraries(){
   const oldTarget=$('pieceLibrary').value;$('pieceLibrary').replaceChildren();
   for(const l of libraries){const option=document.createElement('option');option.value=l.id;option.textContent=l.name;$('pieceLibrary').append(option);}
   $('pieceLibrary').value=activeLibrary==='all'?(libraries.some(l=>l.id===oldTarget)?oldTarget:libraries[0].id):activeLibrary;
+  if(typeof updatePhotoLibraries==='function')updatePhotoLibraries();
 }
 function openLibrary(id){
   if(id!=='all'&&!libraries.some(l=>l.id===id))return;
@@ -42,7 +43,7 @@ function initializeLibraries(){
   try{const saved=JSON.parse(localStorage.getItem(LIBRARY_KEY)||'null');
     if(saved&&Array.isArray(saved.libraries)&&saved.libraries.some(l=>l.id==='original')&&Array.isArray(saved.shards)&&saved.shards.length){
       const ids=new Set(saved.libraries.map(l=>l.id)),seen=new Set();
-      if(saved.libraries.every(l=>typeof l.id==='string'&&typeof l.name==='string'&&l.name.length<=40)&&ids.size===saved.libraries.length&&saved.shards.every(s=>typeof s.id==='string'&&!seen.has(s.id)&&seen.add(s.id)&&ids.has(s.libraryId)&&Array.isArray(s.poly)&&s.poly.length>=3&&s.poly.length<=16&&s.poly.every(p=>Number.isFinite(p.x)&&Number.isFinite(p.y))&&G.area(s.poly)>0&&/^#[0-9a-f]{6}$/i.test(s.color))){
+      if(saved.libraries.every(l=>typeof l.id==='string'&&typeof l.name==='string'&&l.name.length<=40)&&ids.size===saved.libraries.length&&saved.shards.every(s=>typeof s.id==='string'&&!seen.has(s.id)&&seen.add(s.id)&&ids.has(s.libraryId)&&Array.isArray(s.poly)&&s.poly.length>=3&&s.poly.length<=96&&s.poly.every(p=>Number.isFinite(p.x)&&Number.isFinite(p.y))&&G.area(s.poly)>0&&/^#[0-9a-f]{6}$/i.test(s.color))){
         libraries=saved.libraries;shards=saved.shards.map(s=>({...s,rotation:0,area:G.area(s.poly),widthMm:Math.max(...s.poly.map(p=>p.x))-Math.min(...s.poly.map(p=>p.x)),heightMm:Math.max(...s.poly.map(p=>p.y))-Math.min(...s.poly.map(p=>p.y))}));activeLibrary=ids.has(saved.activeLibrary)||saved.activeLibrary==='all'?saved.activeLibrary:'original';
         librarySerial=Math.max(Number(saved.librarySerial)||0,...libraries.map(l=>Number(l.id.replace('library-',''))||0));pieceSerial=Math.max(Number(saved.pieceSerial)||0,...shards.map(s=>Number(s.id.replace(/^P/,''))||0));if(saved.seed!==undefined)$('seed').value=String(saved.seed);restored=true;
       }

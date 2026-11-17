@@ -59,6 +59,8 @@ function refresh(){const area=placed.reduce((s,p)=>s+p.area,0),coverage=100*area
     const xs=s.poly.map(p=>p.x),ys=s.poly.map(p=>p.y),width=s.widthMm??Math.max(...xs)-Math.min(...xs),height=s.heightMm??Math.max(...ys)-Math.min(...ys);
     b.title=s.id+' · '+s.kind+' · '+width.toFixed(1)+' × '+height.toFixed(1)+' mm · '+s.area.toFixed(0)+' mm² · '+(used?'Placed':'Available');
     b.innerHTML='<svg viewBox="'+(Math.min(...xs)-5)+' '+(Math.min(...ys)-5)+' '+(width+10)+' '+(height+10)+'" aria-hidden="true"><polygon points="'+s.poly.map(p=>p.x+','+p.y).join(' ')+'" fill="'+s.color+'" stroke="#41483c" stroke-width="1"/></svg><span>'+s.id+'<small>'+(width/25.4).toFixed(2)+' × '+(height/25.4).toFixed(2)+' in</small></span><small class="shard-metric">'+width.toFixed(1)+' × '+height.toFixed(1)+' mm</small>';
+    if(/^data:image\/(webp|png);base64,[A-Za-z0-9+/=]+$/.test(s.thumbnail||''))b.innerHTML='<img class="photo-shard-image" alt="Photographed shard" src="'+s.thumbnail+'">'+b.innerHTML.slice(b.innerHTML.indexOf('</svg>')+6);
+    if(s.photo){const record=document.createElement('small');record.className='library-source';record.textContent='Photo scan · '+s.area.toFixed(1)+' mm² · '+(s.photo.calibration.mmPerPixelX).toFixed(3)+' mm/px';b.append(record);b.title+=' · Photo: '+s.photo.fileName+' · Perimeter '+s.perimeterMm.toFixed(1)+' mm';}
     if(activeLibrary==='all'){const source=document.createElement('small');source.className='library-source';source.textContent=libraryName(s.libraryId||'original');b.append(source);}
     b.onpointerdown=e=>{if(e.button!==0)return;choose(s);dragging=true;};$('inventory').append(b);
   });
@@ -139,7 +141,7 @@ $('fillerColor').oninput=()=>{fillerColor=$('fillerColor').value;$('fillerPreset
 $('fillerPreset').onchange=()=>{fillerColor=$('fillerPreset').value;$('fillerColor').value=fillerColor;draw();};
 $('editMosaic').onclick=()=>{clearFinish();message('Back to arranging. Your placed shards are preserved.');draw();};
 $('bedSizeForm').onsubmit=applyBedSize;
-bindLibraryControls();new ResizeObserver(draw).observe(canvas);initializeLibraries();
+bindLibraryControls();if(typeof bindPhotoControls==='function')bindPhotoControls();new ResizeObserver(draw).observe(canvas);initializeLibraries();
 
 
 

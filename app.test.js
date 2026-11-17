@@ -4,7 +4,7 @@ const context2d=new Proxy({},{get:(t,k)=>t[k]||(()=>{}),set:(t,k,v)=>(t[k]=v,tru
 function element(id){if(elements.has(id))return elements.get(id);const el={value:id==='seed'?'1847':id==='strategy'?'Largest-first':id==='effort'?'80':'3',children:[],style:{setProperty(){}},setAttribute(k,v){this[k]=v;},disabled:false,replaceChildren(){this.children=[];},append(x){this.children.push(x);},addEventListener(){},getBoundingClientRect(){return {width:600,height:450,left:0,top:0};},getContext(){return context2d;},focus(){},setPointerCapture(){}};elements.set(id,el);return el;}
 const browserStore=new Map();
 const sandbox={console,localStorage:{getItem:k=>browserStore.get(k)||null,setItem:(k,v)=>browserStore.set(k,v)},document:{getElementById:element,createElement:()=>element('el'+Math.random()),addEventListener(){}},window:{devicePixelRatio:1},ResizeObserver:class{observe(){}},setTimeout(fn){timers.set(++timerId,fn);return timerId;},clearTimeout(id){timers.delete(id);}};
-vm.createContext(sandbox);for(const name of ['geometry.js','proposer.js','libraries.js','app.js']){vm.runInContext(fs.readFileSync(__dirname+'/'+name,'utf8'),sandbox);if(name==='geometry.js')sandbox.Geometry=sandbox.window.Geometry;if(name==='proposer.js')sandbox.Proposer=sandbox.window.Proposer;}
+vm.createContext(sandbox);for(const name of ['geometry.js','proposer.js','libraries.js','photo-core.js','photo-import.js','app.js']){vm.runInContext(fs.readFileSync(__dirname+'/'+name,'utf8'),sandbox);if(name==='geometry.js')sandbox.Geometry=sandbox.window.Geometry;if(name==='proposer.js')sandbox.Proposer=sandbox.window.Proposer;if(name==='photo-core.js')sandbox.PhotoCore=sandbox.window.PhotoCore;}
 const run=s=>vm.runInContext(s,sandbox);
 global.Geometry=require('./geometry.js');sandbox.Proposer=require('./proposer.js');
 const flush=()=>{const [id,fn]=timers.entries().next().value;timers.delete(id);fn();};
@@ -81,7 +81,15 @@ run("openLibrary('all');suggestMove();openLibrary('original')");assert.equal(tim
 console.log('PASS library creation, exact custom dimensions, filtered proposals, combined inventory, placed-shard preservation, random additions, storage restore, and timer cancellation');
 global.Geometry=require('./geometry.js');
 const proposer=require('./proposer.js');
-(async()=>{let polls=0;const library=JSON.parse(run('JSON.stringify(shards)'));const result=await proposer.suggestAsync([library,[],400,300,3,'Best-fit',20,()=>.5],()=>++polls>1);assert.equal(result,null);assert.equal(polls,2);console.log('PASS asynchronous search cancellation between shards');})().catch(error=>{console.error(error);process.exitCode=1;});
+(async()=>{
+ let polls=0;const library=JSON.parse(run('JSON.stringify(shards)'));const result=await proposer.suggestAsync([library,[],400,300,3,'Best-fit',20,()=>.5],()=>++polls>1);assert.equal(result,null);assert.equal(polls,2);console.log('PASS asynchronous search cancellation between shards');
+ run(`storeOriginalPhoto=async()=> 'fixture-photo';photoThumbnail=()=> '';photoState={image:{width:100,height:100},file:{name:'fixture.png'},originalWidth:200,originalHeight:200,quad:[{x:0,y:0},{x:100,y:0},{x:100,y:100},{x:0,y:100}],bg:[230,230,230],rect:{width:100,height:100,widthMm:254,heightMm:254,mmPerPixelX:2.54,mmPerPixelY:2.54,toImage:[1/2.54,0,0,0,1/2.54,0,0,0,1],referenceUnit:'inch',referenceInputWidth:10,referenceInputHeight:10},pieces:[{polygon:[{x:10,y:10},{x:30,y:10},{x:30,y:40},{x:10,y:40}],selected:true,color:'#bc7d63',method:'manual-reviewed-trace'}]}`);
+ element('photoLibrary').value=blueId;element('photoReview').checked=false;const countBefore=run('shards.length');await run('savePhotoPieces()');assert.equal(run('shards.length'),countBefore);
+ element('photoReview').checked=true;await run('savePhotoPieces()');assert.equal(run('shards.length'),countBefore+1);assert.equal(run('shards.at(-1).libraryId'),blueId);assert.ok(Math.abs(run('shards.at(-1).widthMm')-50.8)<1e-8);assert.ok(Math.abs(run('shards.at(-1).heightMm')-76.2)<1e-8);assert.equal(run('shards.at(-1).photo.sourceId'),'fixture-photo');assert.equal(run('shards.at(-1).photo.calibration.referenceWidthMm'),254);assert.ok(Math.abs(run('shards.at(-1).photo.outlineOriginalPixels[0].x')-20)<1e-8);
+ const measuredPoly=run('JSON.stringify(shards.at(-1).poly)');run('initializeLibraries()');assert.equal(run('JSON.stringify(shards.at(-1).poly)'),measuredPoly);assert.equal(run('shards.at(-1).photo.reviewed'),true);
+ console.log('PASS review gate, selected destination, physical photo measurements, source scale/provenance, and storage restoration');
+})().catch(error=>{console.error(error);process.exitCode=1;});
+
 
 
 
