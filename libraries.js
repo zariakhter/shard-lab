@@ -2,7 +2,7 @@
 const LIBRARY_KEY='shard-lab-libraries-v1';
 let libraries=[{id:'original',name:'Original collection'}],activeLibrary='original',librarySerial=0,pieceSerial=0;
 function inventoryForLibrary(id){return id==='all'?shards:shards.filter(s=>(s.libraryId||'original')===id);}
-function inventoryForView(){return inventoryForLibrary(activeLibrary);}
+function inventoryForView(){return inventoryForLibrary(activeLibrary).slice().sort((a,b)=>b.area-a.area||a.id.localeCompare(b.id));}
 let stockCacheArray=null,stockCacheLength=-1,stockCacheGroups;
 function stockGroups(){if(stockCacheArray!==shards||stockCacheLength!==shards.length){stockCacheArray=shards;stockCacheLength=shards.length;stockCacheGroups=StockInventory.groups(shards);}return stockCacheGroups;}
 function stockKey(s){return stockGroups().get(s.id)||s.stockKey||s.id;}
