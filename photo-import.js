@@ -70,6 +70,14 @@ async function savePhotoPieces(){
  }catch(error){photoMessage('Could not save: '+error.message+' No pieces were added. Allow browser storage and try again.');$('photoSave').disabled=false;}
 }
 function bindPhotoControls(){
+ $('photoNewLibrary').onclick=()=>{$('photoNewLibraryForm').hidden=false;$('photoNewLibraryError').textContent='';$('photoNewLibraryName').focus();};
+ $('photoCancelLibrary').onclick=()=>{$('photoNewLibraryForm').hidden=true;};
+ $('photoNewLibraryForm').onsubmit=e=>{
+  e.preventDefault();const id=createLibrary($('photoNewLibraryName').value);
+  if(!id){$('photoNewLibraryError').textContent=$('libraryError').textContent;return;}
+  updatePhotoLibraries();$('photoLibrary').value=id;$('photoNewLibraryForm').hidden=true;$('photoNewLibraryName').value='';renderPhotoResults();
+  photoMessage('New library “'+libraryName(id)+'” selected. Your photo, outlines, and review selections are preserved. Click Save to add the selected pieces.');
+ };
  $('photoReview').onchange=renderPhotoResults;$('photoLibrary').onchange=renderPhotoResults;
  $('openPhotoImport').onclick=()=>{pauseSearch();updatePhotoLibraries();$('photoDialog').showModal();};
  $('closePhotoImport').onclick=()=>{$('photoDialog').close();};
