@@ -45,7 +45,7 @@ function generate(){
   for(let i=0;i<35;i++)add(9+r()*15);
   for(let i=0;i<80;i++)add(4+r()*5);
   for(let i=0;i<32;i++)add(12+r()*16,['Long sliver','Long triangle','Scalene triangle','Chipped triangle'][i%4]);
-  shards.forEach(s=>s.libraryId='original');shards=shards.concat(otherPieces);activeLibrary='original';saveLibraries();
+  shards.forEach(s=>s.libraryId='original');shards=shards.concat(otherPieces);activeLibrary='original';ensureLargeOriginalShards();saveLibraries();
   placed=[];selected=null;preview=null;rejected=0;journal=[];$('gap').disabled=false;
   message('New study · '+shards.length+' shards · ceramic area '+Math.round(total/(W*H)*100)+'% of bed. Best-fit searches edges and rotations.');refresh();
 }
@@ -53,9 +53,9 @@ function message(s,type=''){$('status').textContent=s;$('status').className=type
 function verdict(){return G.validate(G.transform(selected.poly,preview.x,preview.y,selected.rotation),placed,W,H,gap);}
 function choose(shard){if(!shard||!availableInventory().some(s=>s.id===shard.id))return;manualControl();selected=shard;preview={x:W/2,y:H/2};refresh();check();}
 function check(){if(!selected||!preview)return;const v=verdict();message(selected.id+' · '+selected.rotation+'° · '+v.reason,v.valid?'good':'bad');draw();}
-function refresh(){const area=placed.reduce((s,p)=>s+p.area,0),coverage=100*area/(W*H),visible=inventoryForView();$('coverage').innerHTML=coverage.toFixed(1)+'<span>%</span>';$('meter').style.width=coverage+'%';$('placed').textContent=placed.length+' placed';$('rejected').textContent=rejected;$('remaining').textContent=availableInventory().length+' AVAILABLE';$('dimensions').textContent=imperial(W)+' × '+imperial(H);$('gap').disabled=placed.length>0;renderLibraries();$('proposalScope').textContent='Using: '+(activeLibrary==='all'?'All inventory':libraryName(activeLibrary))+' · '+availableInventory().length+' unused physical pieces';
+function refresh(){const area=placed.reduce((s,p)=>s+p.area,0),coverage=100*area/(W*H),visible=inventoryForView(),remaining=availableInventory(),availableIds=new Set(remaining.map(s=>s.id));$('coverage').innerHTML=coverage.toFixed(1)+'<span>%</span>';$('meter').style.width=coverage+'%';$('placed').textContent=placed.length+' placed';$('rejected').textContent=rejected;$('remaining').textContent=remaining.length+' AVAILABLE';$('dimensions').textContent=imperial(W)+' × '+imperial(H);$('gap').disabled=placed.length>0;renderLibraries();$('proposalScope').textContent='Using: '+(activeLibrary==='all'?'All inventory':libraryName(activeLibrary))+' · '+availableInventory().length+' unused physical pieces';$('run').disabled=running||remaining.length===0;$('suggest').disabled=remaining.length===0||proposalTimer!==null;
   $('inventory').replaceChildren();visible.forEach(s=>{
-    const used=isShardUsed(s),duplicate=!availableInventory().some(p=>p.id===s.id)&&!used,b=document.createElement('button');b.className='shard'+(used?' used':'')+(selected===s?' selected':'');b.disabled=used||duplicate;
+    const used=isShardUsed(s),duplicate=!availableIds.has(s.id)&&!used,b=document.createElement('button');b.className='shard'+(used?' used':'')+(selected===s?' selected':'');b.disabled=used||duplicate;
     const xs=s.poly.map(p=>p.x),ys=s.poly.map(p=>p.y),width=s.widthMm??Math.max(...xs)-Math.min(...xs),height=s.heightMm??Math.max(...ys)-Math.min(...ys);
     b.title=s.id+' · '+s.kind+' · '+width.toFixed(1)+' × '+height.toFixed(1)+' mm · '+s.area.toFixed(0)+' mm² · '+(used?'Used — 0 remaining':duplicate?'Duplicate scan — shares the same physical piece':'Available — 1 remaining');
     b.innerHTML='<svg viewBox="'+(Math.min(...xs)-5)+' '+(Math.min(...ys)-5)+' '+(width+10)+' '+(height+10)+'" aria-hidden="true"><polygon points="'+s.poly.map(p=>p.x+','+p.y).join(' ')+'" fill="'+s.color+'" stroke="#41483c" stroke-width="1"/></svg><span>'+s.id+'<small>'+(width/25.4).toFixed(2)+' × '+(height/25.4).toFixed(2)+' in</small></span><small class="shard-metric">'+width.toFixed(1)+' × '+height.toFixed(1)+' mm</small>';
@@ -66,7 +66,7 @@ function refresh(){const area=placed.reduce((s,p)=>s+p.area,0),coverage=100*area
     b.onpointerdown=e=>{if(e.button!==0)return;choose(s);dragging=true;};$('inventory').append(b);
   });
   if(!visible.length){const empty=document.createElement('p');empty.className='hint';empty.textContent='This library is empty. Add a piece or a random batch above.';$('inventory').append(empty);}
-  $('log').replaceChildren();if(!journal.length)$('log').innerHTML='<li class="empty">Your first arrangement starts here.</li>';journal.slice().reverse().forEach(item=>{const li=document.createElement('li');li.textContent=item;$('log').append(li);});draw();}
+  $('log').replaceChildren();if(!journal.length)$('log').innerHTML='<li class="empty">Your first arrangement starts here.</li>';journal.slice().reverse().forEach(item=>{const li=document.createElement('li');li.textContent=item;$('log').append(li);});draw();if(!remaining.length){pauseSearch();showCompletion(true);}}
 function bedView(width,height,available,maxHeight=560){const scale=Math.min(Math.max(1,available-2)/width,maxHeight/height);return {width:width*scale,height:height*scale,scale};}
 const GRID_MM=3*25.4;
 function draw(){const available=canvas.parentElement?canvas.parentElement.clientWidth:600,view=bedView(W,H,available),dpr=window.devicePixelRatio||1;
@@ -97,7 +97,8 @@ function suggestMove(){
   clearFinish();draw();
   clearTimeout(nextTimer);
   const strategy=$('strategy').value,ticket=++searchId,scope=activeLibrary;
-  const args=[availableInventory(scope),placed,W,H,gap,strategy,Number($('effort').value),searchRng,$('explore').checked&&!running];
+  const pool=availableInventory(scope);if(!pool.length){pauseSearch();showCompletion(true);return;}
+  const args=[pool,placed,W,H,gap,strategy,Number($('effort').value),searchRng,$('explore').checked&&!running];
   $('suggest').disabled=true;$('pause').disabled=false;
   message('Searching remaining shards, rotations and small interior gaps…');
   if(typeof requestAnimationFrame==='function')Proposer.suggestAsync(args,()=>ticket!==searchId).then(candidate=>{if(ticket===searchId)presentCandidate(candidate,strategy,scope,ticket);}).catch(error=>{pauseSearch();message('Search failed: '+error.message,'bad');});
@@ -111,7 +112,7 @@ function presentCandidate(candidate,strategy,scope=activeLibrary,ticket=searchId
   proposalSource=strategy+' / '+(scope==='all'?'All inventory':libraryName(scope))+(candidate.rescue?' / small-gap scan':candidate.exploratory?' / exploratory':' / edge fit');
   refresh();message('Proposed · '+selected.id+' · '+proposalSource+' · '+selected.rotation+'°. Checking geometry…');
   $('suggest').disabled=true;$('pause').disabled=false;
-  proposalTimer=setTimeout(()=>{proposalTimer=null;if(ticket!==searchId||scope!==activeLibrary)return;commit();$('suggest').disabled=false;if(candidate.stalled){pauseSearch();showCompletion(false);}else if(running)nextTimer=setTimeout(suggestMove,200);else $('pause').disabled=true;},1200);
+  proposalTimer=setTimeout(()=>{proposalTimer=null;if(ticket!==searchId||scope!==activeLibrary)return;commit();$('suggest').disabled=false;if(!availableInventory(scope).length){pauseSearch();showCompletion(true);}else if(candidate.stalled){pauseSearch();showCompletion(false);}else if(running)nextTimer=setTimeout(suggestMove,200);else $('pause').disabled=true;},1200);
 }
 $('suggest').onclick=()=>{pauseSearch();suggestMove();};
 $('run').onclick=()=>{pauseSearch();running=true;$('run').disabled=true;suggestMove();};
@@ -123,9 +124,9 @@ document.addEventListener('keydown',e=>{if(!['INPUT','SELECT','BUTTON'].includes
 $('strategy').onchange=pauseSearch;
 function showCompletion(exhausted){
   selected=null;preview=null;dragging=false;
-  $('completion').hidden=false;
-  $('completion').innerHTML=exhausted?'<strong>No more pieces in this view.</strong><p>Choose another library or All inventory to keep placing pieces, or Bake to finish.</p>':'<strong>No more fits found in this library view.</strong><p>Remaining visible shards were checked with edge alignments and a '+Math.max(4,Math.min(W,H)/75).toFixed(1)+' mm / 15° gap scan. Choose another library or All inventory to search more pieces, or Bake to finish.</p>';
-  message(exhausted?'No unused pieces in this library view. Choose another tab or Bake.':'No more valid fits found in this library view. Choose another tab or Bake.','good');draw();
+  $('completion').hidden=false;$('completion').className=exhausted?'completion inventory-empty':'completion';if(exhausted){$('run').disabled=true;$('suggest').disabled=true;}
+  $('completion').innerHTML=exhausted?'<strong>INVENTORY EMPTY</strong><p>Every physical shard in the selected inventory has been used. Automatic placement has stopped. Choose another library or All inventory, add more pieces, Undo, Reset, or Bake this panel.</p>':'<strong>No more fits found in this library view.</strong><p>Remaining visible shards were checked with edge alignments and a '+Math.max(4,Math.min(W,H)/75).toFixed(1)+' mm / 15° gap scan. Choose another library or All inventory to search more pieces, or Bake to finish.</p>';
+  message(exhausted?'INVENTORY EMPTY — automatic placement stopped. Choose another library, add pieces, or Bake.':'No more valid fits found in this library view. Choose another tab or Bake.','good');draw();
 }
 function bakeMosaic(){
   if(!placed.length){message('Place some shards before baking.','bad');return;}

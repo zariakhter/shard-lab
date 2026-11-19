@@ -33,7 +33,7 @@ function createLibrary(name){
   $('libraryError').textContent='';
   const id='library-'+(++librarySerial);libraries.push({id,name});$('libraryForm').hidden=true;$('libraryName').value='';openLibrary(id);return id;
 }
-function addLibraryPiece(libraryId,shape,widthIn,heightIn,color,rng=Math.random){
+function addLibraryPiece(libraryId,shape,widthIn,heightIn,color,rng=Math.random,assignedId=null){
   if(!libraries.some(l=>l.id===libraryId)||![widthIn,heightIn].every(n=>Number.isFinite(n)&&n>=.125&&n<=24))throw new Error('Choose a library and dimensions between 0.125 and 24 inches.');
   let poly;
   if(shape==='Scalene triangle'||shape==='Long triangle')poly=[{x:0,y:.05+rng()*.2},{x:1,y:0},{x:.15+rng()*.55,y:1}];
@@ -43,7 +43,18 @@ function addLibraryPiece(libraryId,shape,widthIn,heightIn,color,rng=Math.random)
   const widthMm=widthIn*25.4,heightMm=heightIn*25.4;
   poly=poly.map(p=>({x:(p.x-minX)/sx*widthMm,y:(p.y-minY)/sy*heightMm}));
   const cx=poly.reduce((sum,p)=>sum+p.x,0)/poly.length,cy=poly.reduce((sum,p)=>sum+p.y,0)/poly.length;poly=poly.map(p=>({x:p.x-cx,y:p.y-cy}));
-  const piece={id:'P'+String(++pieceSerial).padStart(4,'0'),libraryId,kind:shape,widthMm,heightMm,poly,area:G.area(poly),color:/^#[0-9a-f]{6}$/i.test(color)?color:'#8fa7b4',rotation:0};shards.push(piece);return piece;
+  const piece={id:assignedId||'P'+String(++pieceSerial).padStart(4,'0'),libraryId,kind:shape,widthMm,heightMm,poly,area:G.area(poly),color:/^#[0-9a-f]{6}$/i.test(color)?color:'#8fa7b4',rotation:0};shards.push(piece);return piece;
+}
+function ensureLargeOriginalShards(){
+ const target=shards.filter(s=>(s.libraryId||'original')==='original'&&/^S\d+$/.test(s.id)).length;
+ const existing=shards.filter(s=>s.libraryId==='original'&&s.batch==='large-v1').length;
+ const palette=['#bc7d63','#91a58e','#8fa7b4','#c3a15d','#ddd1b7','#536d88','#9d696c','#deded0','#5f6c57','#bd9b7e'];
+ const kinds=['Broad fragment','Long sliver','Scalene triangle','Long triangle','Chipped triangle','Broad fragment'];
+ for(let i=existing;i<target;i++){
+  const rng=random(((Number($('seed').value)>>>0)^0x47baf091)+i*1777),kind=kinds[i%kinds.length];
+  const longest=6+14*(i+rng())/Math.max(1,target),short=longest*(kind.includes('Long')?.18+rng()*.18:.45+rng()*.45);
+  const piece=addLibraryPiece('original',kind,longest,short,palette[i%palette.length],rng,'B'+String(i+1).padStart(3,'0'));piece.batch='large-v1';
+ }
 }
 function initializeLibraries(){
   let restored=false;
@@ -56,7 +67,7 @@ function initializeLibraries(){
       }
     }
   }catch(error){/* A missing or invalid save starts the original seeded collection. */}
-  if(restored){searchRng=random((Number($('seed').value)>>>0)^98765);saveLibraries();refresh();message('Your saved shard libraries are ready. Choose a tab to begin.');}else generate();
+  if(restored){searchRng=random((Number($('seed').value)>>>0)^98765);ensureLargeOriginalShards();saveLibraries();refresh();message('Your saved shard libraries are ready. Choose a tab to begin.');}else generate();
 }
 function bindLibraryControls(){
 $('newLibrary').onclick=()=>{$('libraryForm').hidden=false;$('libraryName').focus();};

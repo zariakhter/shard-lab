@@ -9,6 +9,9 @@ const run=s=>vm.runInContext(s,sandbox);
 global.Geometry=require('./geometry.js');sandbox.Proposer=require('./proposer.js');
 const flush=()=>{const [id,fn]=timers.entries().next().value;timers.delete(id);fn();};
 assert.ok(run('shards.length')>60);assert.ok(run('shards.reduce((a,s)=>a+s.area,0)')>240000);
+assert.equal(run("shards.filter(s=>s.batch==='large-v1').length"),run("shards.filter(s=>/^S\\d+$/.test(s.id)).length"));
+assert.ok(run("shards.filter(s=>s.batch==='large-v1').every(s=>Math.max(s.widthMm,s.heightMm)>=6*25.4-1e-7&&Math.max(s.widthMm,s.heightMm)<=20*25.4+1e-7)"));
+assert.ok(run("shards.some(s=>s.batch==='large-v1'&&s.widthMm>19*25.4)"));assert.ok(run("new Set(shards.filter(s=>s.batch==='large-v1').map(s=>s.color)).size")>=8);
 assert.ok(run("shards.filter(s=>s.kind==='Long sliver').length")>=24);
 for(const kind of ['Scalene triangle','Long triangle','Chipped triangle'])assert.ok(run('shards.filter(s=>s.kind==='+JSON.stringify(kind)+').length')>=8);
 assert.ok(run("shards.filter(s=>s.kind==='Scalene triangle'||s.kind==='Long triangle').every(s=>s.poly.length===3)"));
@@ -32,7 +35,7 @@ run("pauseSearch();placed=[];selected=null;preview=null;shards=[{id:'giant',area
 element('run').onclick();assert.equal(run('running'),true);flush();assert.equal(run('running'),false);assert.equal(timers.size,0);
 console.log('PASS automatic no-fit verdict stops the run and clears timers');
 run("placed=[];shards=[{id:'tiny',area:16,rotation:0,color:'#aaa',poly:[{x:-2,y:-2},{x:2,y:-2},{x:2,y:2},{x:-2,y:2}]}]");
-element('run').onclick();flush();assert.equal(run('placed.length'),1);assert.equal(run('running'),true);flush();assert.equal(run('running'),false);assert.equal(timers.size,0);
+element('run').onclick();flush();assert.equal(run('placed.length'),1);assert.equal(run('running'),false);assert.equal(timers.size,0);assert.ok(element('completion').innerHTML.includes('INVENTORY EMPTY'));assert.equal(element('run').disabled,true);
 console.log('PASS automatic placement continues and stops on exhausted inventory');
 assert.equal(element('completion').hidden,false);
 const mosaicBefore=run('JSON.stringify(placed)');
