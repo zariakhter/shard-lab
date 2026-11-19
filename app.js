@@ -4,7 +4,7 @@ let W=400,H=300;const colors=['#bc7d63','#91a58e','#8fa7b4','#c3a15d','#ddd1b7']
 let shards=[],placed=[],selected=null,preview=null,gap=3,rejected=0,journal=[],dragging=false;
 let proposalTimer=null,nextTimer=null,running=false,proposalSource='Manual',searchRng,searchId=0;
 let finishProgress=0,baking=false,baked=false,bakeEpoch=0,fillerColor='#d7cbb4';
-function clearFinish(){bakeEpoch++;finishProgress=0;baking=false;baked=false;$('bake').textContent='Bake ↗';$('editMosaic').hidden=true;$('completion').hidden=true;}
+function clearFinish(){$('guideExports').hidden=true;bakeEpoch++;finishProgress=0;baking=false;baked=false;$('bake').textContent='Bake ↗';$('editMosaic').hidden=true;$('completion').hidden=true;}
 function pauseSearch(){searchId++;clearTimeout(proposalTimer);clearTimeout(nextTimer);proposalTimer=null;nextTimer=null;running=false;$('run').disabled=false;$('pause').disabled=true;$('suggest').disabled=false;}
 function manualControl(){pauseSearch();clearFinish();proposalSource='Manual';}
 function random(seed){return ()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return ((t^t>>>14)>>>0)/4294967296;};}
@@ -131,10 +131,10 @@ function showCompletion(exhausted){
 function bakeMosaic(){
   if(!placed.length){message('Place some shards before baking.','bad');return;}
   pauseSearch();selected=null;preview=null;dragging=false;
-  const epoch=++bakeEpoch;baked=false;baking=true;finishProgress=0;
+  $('guideExports').hidden=true;const epoch=++bakeEpoch;baked=false;baking=true;finishProgress=0;
   $('bake').textContent='Pouring filler…';$('editMosaic').hidden=false;
   message('Pouring filler into the joints and empty spaces…');
-  function complete(){finishProgress=1;baking=false;baked=true;$('bake').textContent='Bake again ↗';message('Mosaic finished · change the filler color to explore different finishes.','good');draw();}
+  function complete(){$('guideExports').hidden=false;finishProgress=1;baking=false;baked=true;$('bake').textContent='Bake again ↗';message('Mosaic finished · choose a filler color, then save the image with piece IDs below.','good');draw();}
   if(typeof requestAnimationFrame!=='function'){complete();return;}
   const start=performance.now();
   function frame(now){if(epoch!==bakeEpoch)return;finishProgress=Math.min(1,(now-start)/2800);if(finishProgress>=1){complete();return;}draw();requestAnimationFrame(frame);}
@@ -145,6 +145,18 @@ $('fillerColor').oninput=()=>{fillerColor=$('fillerColor').value;$('fillerPreset
 $('fillerPreset').onchange=()=>{fillerColor=$('fillerPreset').value;$('fillerColor').value=fillerColor;draw();};
 $('editMosaic').onclick=()=>{clearFinish();message('Back to arranging. Your placed shards are preserved.');draw();};
 $('bedSizeForm').onsubmit=applyBedSize;
+async function downloadFinishedGuide(format){
+ if(!baked||baking||!placed.length){message('Bake the panel before saving its finished placement guide.','bad');return;}
+ const pngButton=$('downloadGuidePng'),svgButton=$('downloadGuideSvg');pngButton.disabled=true;svgButton.disabled=true;
+ try{
+  const model=MosaicGuide.layout(placed,W,H,fillerColor,gap);let blob;
+  if(format==='svg')blob=new Blob([MosaicGuide.svg(model)],{type:'image/svg+xml'});
+  else{const output=document.createElement('canvas');output.width=model.width;output.height=model.height;const context=output.getContext('2d');if(!context)throw Error('The browser could not create an export image.');MosaicGuide.draw(context,model);blob=await new Promise((resolve,reject)=>output.toBlob(value=>value?resolve(value):reject(Error('Image could not be generated; try the SVG guide.')),'image/png'));}
+  const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='shard-lab-'+(W/25.4).toFixed(2)+'x'+(H/25.4).toFixed(2)+'in-piece-guide.'+format;link.click();setTimeout(()=>URL.revokeObjectURL(url),10000);
+  message('Finished '+format.toUpperCase()+' guide saved with '+placed.length+' piece IDs. Use the top-left marker to match the bed orientation.','good');
+ }catch(error){message('Guide export failed: '+error.message,'bad');}finally{pngButton.disabled=false;svgButton.disabled=false;}
+}
+$('downloadGuidePng').onclick=()=>downloadFinishedGuide('png');$('downloadGuideSvg').onclick=()=>downloadFinishedGuide('svg');
 bindLibraryControls();if(typeof bindPhotoControls==='function')bindPhotoControls();new ResizeObserver(draw).observe(canvas);initializeLibraries();
 
 

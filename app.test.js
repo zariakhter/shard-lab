@@ -43,9 +43,11 @@ const frames=[];sandbox.requestAnimationFrame=fn=>frames.push(fn);sandbox.perfor
 element('bake').onclick();assert.equal(run('baking'),true);assert.equal(run('running'),false);
 frames.shift()(1400);assert.equal(run('finishProgress'),.5);frames.shift()(2800);
 assert.equal(run('baked'),true);assert.equal(run('finishProgress'),1);assert.equal(run('JSON.stringify(placed)'),mosaicBefore);
+assert.equal(element('guideExports').hidden,false);
 element('fillerColor').value='#343b38';element('fillerColor').oninput();assert.equal(run('fillerColor'),'#343b38');assert.equal(run('baked'),true);
 element('fillerPreset').value='#718e9c';element('fillerPreset').onchange();assert.equal(run('fillerColor'),'#718e9c');
 element('editMosaic').onclick();assert.equal(run('baked'),false);assert.equal(run('JSON.stringify(placed)'),mosaicBefore);
+assert.equal(element('guideExports').hidden,true);
 element('bake').onclick();element('reset').onclick();frames.shift()(2800);assert.equal(run('baked'),false);assert.equal(run('finishProgress'),0);
 element('bake').onclick();assert.equal(run('baking'),false);
 console.log('PASS completion banner, animated bake, live filler colors, editing, and animation cancellation');
