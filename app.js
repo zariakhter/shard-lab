@@ -92,7 +92,7 @@ $('left').onclick=()=>rotate(-10);$('right').onclick=()=>rotate(10);$('place').o
 $('undo').onclick=()=>{const s=placed.pop();if(s){journal.push('Undo · '+s.id+' returned to the library.');message(s.id+' returned to the library.');refresh();}};
 $('reset').onclick=()=>{placed=[];selected=null;preview=null;rejected=0;journal=[];message('Panel reset. The same inventory is ready for another study.');refresh();};
 $('regenerate').onclick=generate;$('gap').oninput=()=>{gap=Number($('gap').value);$('gapLabel').textContent=gap+' mm';check();};
-document.addEventListener('keydown',e=>{if(['INPUT','SELECT','BUTTON'].includes(e.target.tagName))return;if(e.key==='Escape'){cancel();return;}if(!selected)return;if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Enter','w','W','s','S','q','Q','e','E','r','R'].includes(e.key))e.preventDefault();const step=e.shiftKey?10:1;if(e.key==='r'||e.key==='R')rotate(e.shiftKey?-15:15);if(e.key==='Enter')commit();if(e.key==='ArrowLeft')rotate(-10);if(e.key==='ArrowRight')rotate(10);if(preview){const key=e.key.toLowerCase();if(e.key==='ArrowUp'||key==='w')preview.y-=step;if(e.key==='ArrowDown'||key==='s')preview.y+=step;if(key==='q')preview.x-=step;if(key==='e')preview.x+=step;check();}});
+document.addEventListener('keydown',e=>{if(['INPUT','SELECT','BUTTON'].includes(e.target.tagName))return;if(e.key==='Escape'){cancel();return;}if(!selected)return;if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Enter','w','W','s','S','d','D','a','A','r','R'].includes(e.key))e.preventDefault();const step=e.shiftKey?10:1;if(e.key==='r'||e.key==='R')rotate(e.shiftKey?-15:15);if(e.key==='Enter')commit();if(e.key==='ArrowLeft')rotate(-10);if(e.key==='ArrowRight')rotate(10);if(preview){const key=e.key.toLowerCase();if(e.key==='ArrowUp'||key==='w')preview.y-=step;if(e.key==='ArrowDown'||key==='s')preview.y+=step;if(key==='d')preview.x-=step;if(key==='a')preview.x+=step;check();}});
 $('inventory').addEventListener('click',e=>{if(e.detail!==0)return;const button=e.target.closest('button');if(button)choose(inventoryForView()[Array.from($('inventory').children).indexOf(button)]);});
 function suggestMove(){
   clearFinish();draw();
@@ -121,7 +121,7 @@ $('pause').onclick=()=>{pauseSearch();if(selected&&preview)check();};
 $('effort').oninput=()=>{$('effortLabel').textContent=$('effort').value+' samples / shard';};
 for(const id of ['undo','reset','place']){const action=$(id).onclick;$(id).onclick=()=>{pauseSearch();if(id!=='place')clearFinish();if(id==='reset'){proposalSource='Manual';searchRng=random((Number($('seed').value)>>>0)^98765);}action();};}
 const boardAction=canvas.onpointerdown;canvas.onpointerdown=e=>{manualControl();boardAction(e);};
-document.addEventListener('keydown',e=>{if(!['INPUT','SELECT','BUTTON'].includes(e.target.tagName)&&['Enter','Escape','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','w','W','s','S','q','Q','e','E','r','R'].includes(e.key))manualControl();},true);
+document.addEventListener('keydown',e=>{if(!['INPUT','SELECT','BUTTON'].includes(e.target.tagName)&&['Enter','Escape','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','w','W','s','S','d','D','a','A','r','R'].includes(e.key))manualControl();},true);
 $('strategy').onchange=pauseSearch;
 function showCompletion(exhausted){
   selected=null;preview=null;dragging=false;
