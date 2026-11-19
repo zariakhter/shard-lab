@@ -16,3 +16,5 @@ canvas{box-sizing:content-box;aspect-ratio:auto;max-width:100%;flex:none}.canvas
 .guide-exports{margin:20px 0;padding:18px;border:1px solid #8d9f80;background:#e4ebdc;line-height:1.6}.guide-exports[hidden]{display:none}.guide-exports strong{font:20px Georgia}.guide-exports p{font-size:11px;margin:8px 0}.guide-exports button{margin:5px 5px 5px 0}
 
 .inspiration-controls{border-top:1px solid #c9cbbf;padding:18px 0}.inspiration-controls canvas{width:100%;height:auto;display:block;margin:12px 0;border:1px solid #c9cbbf}.inspiration-controls canvas[hidden]{display:none}
+
+.board-bottom{flex-wrap:wrap;gap:12px;align-items:center}.keyboard-guide{display:flex;flex-wrap:wrap;gap:12px 20px;width:100%;padding:16px;background:#e1e8d9;border:2px solid #526c54;border-radius:6px;color:#263b2c;font-size:18px;line-height:1.5;letter-spacing:0}.keyboard-guide strong{display:flex;align-items:center;gap:8px}.keyboard-guide kbd{display:inline-block;min-width:36px;padding:3px 9px;background:#fffdf5;border:1px solid #526c54;border-bottom-width:3px;border-radius:4px;font:bold 20px Arial;text-align:center}.keyboard-guide small{width:100%;font-size:13px;font-weight:500}
