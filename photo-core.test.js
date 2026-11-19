@@ -20,6 +20,7 @@ console.log('PASS real pixel segmentation removes grid lines and retains concavi
 const rectified=P.rectification(data,w,ht,[{x:0,y:0},{x:119,y:0},{x:119,y:99},{x:0,y:99}],304.8,254,120);
 near(rectified.mmPerPixelX,2.54);near(rectified.mmPerPixelY,2.54);assert.equal(rectified.width,120);assert.equal(rectified.height,100);
 const triangle=P.measure([{x:0,y:0},{x:10,y:0},{x:0,y:20}],2,2);near(triangle.area,400);near(triangle.widthMm,20);near(triangle.heightMm,40);
+const closed=P.measure([{x:0,y:0},{x:10,y:0},{x:10,y:0},{x:0,y:20},{x:0,y:0}],2,2);near(closed.area,400);assert.equal(closed.poly.length,3);
 assert.equal(P.simple([{x:0,y:0},{x:10,y:10},{x:0,y:10},{x:10,y:0}]),false);
 assert.throws(()=>P.measure([{x:0,y:0},{x:10,y:10},{x:0,y:10},{x:10,y:0}],1,1));
 console.log('PASS physical dimensions, area, scale, rectification, and invalid manual outline rejection');

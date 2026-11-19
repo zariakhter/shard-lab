@@ -43,7 +43,10 @@ function detect(data,w,h,bg,threshold=65,opening=1,minPixels=80){
  }
  return {pieces,skipped};
 }
-function measure(polygon,mmX,mmY){const physical=polygon.map(p=>({x:p.x*mmX,y:p.y*mmY}));if(!simple(physical))throw Error('Outline crosses itself or has too many vertices. Trace a simple boundary in order.');
+function measure(polygon,mmX,mmY){
+ const clean=polygon.filter((p,i)=>!i||Math.hypot(p.x-polygon[i-1].x,p.y-polygon[i-1].y)>1e-7);
+ if(clean.length>1&&Math.hypot(clean[0].x-clean.at(-1).x,clean[0].y-clean.at(-1).y)<1e-7)clean.pop();
+ const physical=clean.map(p=>({x:p.x*mmX,y:p.y*mmY}));if(!simple(physical))throw Error('Outline crosses itself or has too many vertices. Trace a simple boundary in order.');
  const xs=physical.map(p=>p.x),ys=physical.map(p=>p.y),widthMm=Math.max(...xs)-Math.min(...xs),heightMm=Math.max(...ys)-Math.min(...ys),cx=physical.reduce((s,p)=>s+p.x,0)/physical.length,cy=physical.reduce((s,p)=>s+p.y,0)/physical.length;
  return {poly:physical.map(p=>({x:p.x-cx,y:p.y-cy})),widthMm,heightMm,area:area(physical),perimeterMm:physical.reduce((s,p,i)=>s+Math.hypot(p.x-physical[(i+1)%physical.length].x,p.y-physical[(i+1)%physical.length].y),0)};
 }

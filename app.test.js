@@ -84,10 +84,14 @@ const proposer=require('./proposer.js');
 (async()=>{
  let polls=0;const library=JSON.parse(run('JSON.stringify(shards)'));const result=await proposer.suggestAsync([library,[],400,300,3,'Best-fit',20,()=>.5],()=>++polls>1);assert.equal(result,null);assert.equal(polls,2);console.log('PASS asynchronous search cancellation between shards');
  run(`storeOriginalPhoto=async()=> 'fixture-photo';photoThumbnail=()=> '';photoState={image:{width:100,height:100},file:{name:'fixture.png'},originalWidth:200,originalHeight:200,quad:[{x:0,y:0},{x:100,y:0},{x:100,y:100},{x:0,y:100}],bg:[230,230,230],rect:{width:100,height:100,widthMm:254,heightMm:254,mmPerPixelX:2.54,mmPerPixelY:2.54,toImage:[1/2.54,0,0,0,1/2.54,0,0,0,1],referenceUnit:'inch',referenceInputWidth:10,referenceInputHeight:10},pieces:[{polygon:[{x:10,y:10},{x:30,y:10},{x:30,y:40},{x:10,y:40}],selected:true,color:'#bc7d63',method:'manual-reviewed-trace'}]}`);
- element('photoLibrary').value=blueId;element('photoReview').checked=false;const countBefore=run('shards.length');await run('savePhotoPieces()');assert.equal(run('shards.length'),countBefore);
+ element('photoLibrary').value=blueId;element('photoReview').checked=false;
+ run('photoState.pieces[0].hasHoles=true;photoState.pieces[0].selected=false;renderPhotoResults()');assert.equal(element('photoResults').children[0].children[0].children[0].disabled,false);assert.ok(element('photoSaveHelp').textContent.includes('No pieces selected'));assert.equal(element('photoSave').disabled,true);
+ run('photoState.pieces[0].selected=true;renderPhotoResults()');assert.ok(element('photoSaveHelp').textContent.includes('review confirmation'));assert.equal(element('photoSave').disabled,true);
+ const countBefore=run('shards.length');await run('savePhotoPieces()');assert.equal(run('shards.length'),countBefore);
  element('photoReview').checked=true;await run('savePhotoPieces()');assert.equal(run('shards.length'),countBefore+1);assert.equal(run('shards.at(-1).libraryId'),blueId);assert.ok(Math.abs(run('shards.at(-1).widthMm')-50.8)<1e-8);assert.ok(Math.abs(run('shards.at(-1).heightMm')-76.2)<1e-8);assert.equal(run('shards.at(-1).photo.sourceId'),'fixture-photo');assert.equal(run('shards.at(-1).photo.calibration.referenceWidthMm'),254);assert.ok(Math.abs(run('shards.at(-1).photo.outlineOriginalPixels[0].x')-20)<1e-8);
  const measuredPoly=run('JSON.stringify(shards.at(-1).poly)');run('initializeLibraries()');assert.equal(run('JSON.stringify(shards.at(-1).poly)'),measuredPoly);assert.equal(run('shards.at(-1).photo.reviewed'),true);
- console.log('PASS review gate, selected destination, physical photo measurements, source scale/provenance, and storage restoration');
+ assert.equal(run('shards.at(-1).photo.internalRegionsIgnored'),true);
+ console.log('PASS selectable internal-artifact warnings, clear save blockers, review gate, physical measurements, provenance, and storage restoration');
 })().catch(error=>{console.error(error);process.exitCode=1;});
 
 
