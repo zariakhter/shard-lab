@@ -2,7 +2,7 @@
 'use strict';
 const bounds=p=>({minX:Math.min(...p.map(v=>v.x)),minY:Math.min(...p.map(v=>v.y)),maxX:Math.max(...p.map(v=>v.x)),maxY:Math.max(...p.map(v=>v.y))});
 const angle=(a,b)=>Math.atan2(b.y-a.y,b.x-a.x)*180/Math.PI;
-function* search(shards,placed,width,height,gap,strategy,effort,rng,explore=false,inspiration=null){
+function* search(shards,placed,width,height,gap,strategy,effort,rng,explore=false){
  const seen=new Set(),used=new Set(placed.map(p=>p.stockKey||p.id));const available=shards.filter(s=>{const key=s.stockKey||s.id;if(used.has(key)||seen.has(key))return false;seen.add(key);return true;});if(!available.length)return null;
  available.sort((a,b)=>strategy==='Smallest-first'?a.area-b.area:b.area-a.area);
  const obstacles=placed.map(s=>({...s,box:bounds(s.world)}));
@@ -18,12 +18,10 @@ function* search(shards,placed,width,height,gap,strategy,effort,rng,explore=fals
   const growth=Math.max(envelope.maxX,box.maxX)*Math.max(envelope.maxY,box.maxY)-envelope.maxX*envelope.maxY;
   let score=growth/shard.area*25+(box.minY/height+box.minX/width)*12;
   if(strategy==='Best-fit')score-=Math.sqrt(shard.area)*3;
-  if(inspiration&&verdict.valid)score=inspiration.score(shard,world,width,height)*10000-Math.sqrt(shard.area)*.35+score*.02;
   if(verdict.valid){if(score<bestScore){bestScore=score;best={shard,x,y,rotation,exploratory:false};}}
   else if(score+overflow*30<failedScore){failedScore=score+overflow*30;failed={shard,x,y,rotation,exploratory:false,stalled:true};}
  }
  for(const shard of available){
-  if(inspiration){for(let n=0;n<Math.max(48,effort);n++){const rotation=(n%12)*30,poly=Geometry.transform(shard.poly,0,0,rotation),box=bounds(poly);const cols=8,row=Math.floor(n/cols),x=(n%cols+.5)*width/cols,y=(row+.5)*height/Math.ceil(Math.max(48,effort)/cols);evaluate(shard,poly,x-(box.minX+box.maxX)/2,y-(box.minY+box.maxY)/2,rotation);} }
   const budget=Math.max(32,Math.floor(effort*2));
   for(let n=0;n<budget;n++){
    const edgeIndex=n%shard.poly.length,a=shard.poly[edgeIndex],b=shard.poly[(edgeIndex+1)%shard.poly.length];
@@ -41,7 +39,7 @@ function* search(shards,placed,width,height,gap,strategy,effort,rng,explore=fals
    if(wall){const box=bounds(poly);evaluate(shard,poly,edge[0].x===width?width-box.maxX:-box.minX,edge[0].y===height?height-box.maxY:-box.minY,rotation);}
   }
   if(best&&best.shard===shard)for(let i=0;i<12;i++){const rotation=(best.rotation+(rng()-.5)*8+360)%360;evaluate(shard,Geometry.transform(shard.poly,0,0,rotation),best.x+(rng()-.5)*5,best.y+(rng()-.5)*5,rotation);}
-  if(!inspiration&&strategy!=='Best-fit'&&best)break;
+  if(strategy!=='Best-fit'&&best)break;
   yield null;
  }
  // Before declaring the bed full, scan free-space centers, including interior pockets.
