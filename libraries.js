@@ -15,8 +15,9 @@ function saveLibraries(){
   catch(error){$('librarySaveStatus').textContent='Browser storage unavailable or full. Keep this tab open to retain your libraries.';return false;}
 }
 function renderLibraries(){
-  $('libraryTabs').replaceChildren();
-  for(const l of [{id:'all',name:'All inventory'},...libraries]){const button=document.createElement('button');button.type='button';button.setAttribute('role','tab');button.setAttribute('aria-selected',String(activeLibrary===l.id));button.textContent=l.name;button.onclick=()=>openLibrary(l.id);$('libraryTabs').append(button);}
+  $('librarySelect').replaceChildren();
+  for(const l of [{id:'all',name:'All inventory'},...libraries]){const option=document.createElement('option');option.value=l.id;option.textContent=l.name;$('librarySelect').append(option);}
+  $('librarySelect').value=activeLibrary;
   const oldTarget=$('pieceLibrary').value;$('pieceLibrary').replaceChildren();
   for(const l of libraries){const option=document.createElement('option');option.value=l.id;option.textContent=l.name;$('pieceLibrary').append(option);}
   $('pieceLibrary').value=activeLibrary==='all'?(libraries.some(l=>l.id===oldTarget)?oldTarget:libraries[0].id):activeLibrary;
@@ -29,7 +30,7 @@ function openLibrary(id){
 }
 function createLibrary(name){
   name=name.trim();if(!name||name.length>40){$('libraryError').textContent='Enter a library name of 1–40 characters.';return null;}
-  if(name.toLowerCase()==='all inventory'||libraries.some(l=>l.name.toLowerCase()===name.toLowerCase())){$('libraryError').textContent='Choose a different name; that tab already exists.';return null;}
+  if(name.toLowerCase()==='all inventory'||libraries.some(l=>l.name.toLowerCase()===name.toLowerCase())){$('libraryError').textContent='Choose a different name; that library already exists.';return null;}
   $('libraryError').textContent='';
   const id='library-'+(++librarySerial);libraries.push({id,name});$('libraryForm').hidden=true;$('libraryName').value='';openLibrary(id);return id;
 }
@@ -67,9 +68,10 @@ function initializeLibraries(){
       }
     }
   }catch(error){/* A missing or invalid save starts the original seeded collection. */}
-  if(restored){searchRng=random((Number($('seed').value)>>>0)^98765);ensureLargeOriginalShards();saveLibraries();refresh();message('Your saved shard libraries are ready. Choose a tab to begin.');}else generate();
+  if(restored){searchRng=random((Number($('seed').value)>>>0)^98765);ensureLargeOriginalShards();saveLibraries();refresh();message('Your saved shard libraries are ready. Choose a library to begin.');}else generate();
 }
 function bindLibraryControls(){
+$('librarySelect').onchange=()=>openLibrary($('librarySelect').value);
 $('newLibrary').onclick=()=>{$('libraryForm').hidden=false;$('libraryName').focus();};
 $('cancelLibrary').onclick=()=>{$('libraryForm').hidden=true;};
 $('libraryForm').onsubmit=e=>{e.preventDefault();createLibrary($('libraryName').value);};
