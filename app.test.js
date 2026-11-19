@@ -4,7 +4,7 @@ const context2d=new Proxy({},{get:(t,k)=>t[k]||(()=>{}),set:(t,k,v)=>(t[k]=v,tru
 function element(id){if(elements.has(id))return elements.get(id);const el={value:id==='seed'?'1847':id==='strategy'?'Largest-first':id==='effort'?'80':'3',children:[],style:{setProperty(){}},setAttribute(k,v){this[k]=v;},disabled:false,replaceChildren(){this.children=[];},append(x){this.children.push(x);},addEventListener(){},getBoundingClientRect(){return {width:600,height:450,left:0,top:0};},getContext(){return context2d;},focus(){},setPointerCapture(){}};elements.set(id,el);return el;}
 const browserStore=new Map();
 const sandbox={console,localStorage:{getItem:k=>browserStore.get(k)||null,setItem:(k,v)=>browserStore.set(k,v)},document:{getElementById:element,createElement:()=>element('el'+Math.random()),addEventListener(){}},window:{devicePixelRatio:1},ResizeObserver:class{observe(){}},setTimeout(fn){timers.set(++timerId,fn);return timerId;},clearTimeout(id){timers.delete(id);}};
-vm.createContext(sandbox);for(const name of ['geometry.js','proposer.js','libraries.js','photo-core.js','photo-import.js','app.js']){vm.runInContext(fs.readFileSync(__dirname+'/'+name,'utf8'),sandbox);if(name==='geometry.js')sandbox.Geometry=sandbox.window.Geometry;if(name==='proposer.js')sandbox.Proposer=sandbox.window.Proposer;if(name==='photo-core.js')sandbox.PhotoCore=sandbox.window.PhotoCore;}
+vm.createContext(sandbox);for(const name of ['geometry.js','proposer.js','stock.js','libraries.js','photo-core.js','photo-import.js','app.js']){vm.runInContext(fs.readFileSync(__dirname+'/'+name,'utf8'),sandbox);if(name==='geometry.js')sandbox.Geometry=sandbox.window.Geometry;if(name==='proposer.js')sandbox.Proposer=sandbox.window.Proposer;if(name==='stock.js')sandbox.StockInventory=sandbox.window.StockInventory;if(name==='photo-core.js')sandbox.PhotoCore=sandbox.window.PhotoCore;}
 const run=s=>vm.runInContext(s,sandbox);
 global.Geometry=require('./geometry.js');sandbox.Proposer=require('./proposer.js');
 const flush=()=>{const [id,fn]=timers.entries().next().value;timers.delete(id);fn();};
@@ -64,6 +64,15 @@ assert.ok(Math.abs(parseFloat(element('board').style.width)/parseFloat(element('
 sizeBed(2,0,4,0);assert.ok(Math.abs(parseFloat(element('board').style.width)/parseFloat(element('board').style.height)-.5)<1e-10);
 assert.equal(run('Math.ceil(W/GRID_MM)'),8);assert.equal(run('Math.ceil(H/GRID_MM)'),16);
 console.log('PASS outer bed frame proportions in both orientations and fixed three-inch grid');
+run(`pauseSearch();placed=[];selected=null;preview=null;libraries=[{id:'original',name:'Original collection'},{id:'photos',name:'photos'}];const physicalFixture={poly:[{x:-5,y:-5},{x:5,y:-5},{x:5,y:5},{x:-5,y:5}],area:100,perimeterMm:40,color:'#bc7d63',rotation:0};const scanFixture={calibration:{mmPerPixelX:1},sourceId:'source-a',fileName:'fixture.png',originalPixelWidth:1000,originalPixelHeight:800,outlineOriginalPixels:[{x:20,y:20},{x:100,y:20},{x:100,y:100},{x:20,y:100}]};shards=[{...physicalFixture,id:'stockA',libraryId:'original',photo:{...scanFixture}},{...physicalFixture,id:'stockAlias',libraryId:'photos',photo:{...scanFixture,sourceId:'source-b'}},{...physicalFixture,id:'stockB',libraryId:'original'},{...physicalFixture,id:'stockC',libraryId:'photos',poly:[{x:-3,y:-3},{x:3,y:-3},{x:3,y:3},{x:-3,y:3}],area:36}];activeLibrary='photos';`);
+assert.deepEqual(JSON.parse(run('JSON.stringify(availableInventory().map(s=>s.id))')),['stockAlias','stockC']);run('suggestMove()');flush();assert.equal(run('placed[0].libraryId'),'photos');const firstStock=run('placed[0].stockKey');
+run("openLibrary('all')");assert.equal(run('availableInventory().length'),2);
+run("selected=shards.find(s=>s.id==='stockA');preview={x:200,y:200};commit()");assert.equal(run('placed.length'),1);
+run("openLibrary('original');selected=shards.find(s=>s.id==='stockC');preview={x:200,y:200};commit()");assert.equal(run('placed.length'),1);
+run("openLibrary('all');suggestMove()");flush();assert.equal(run('placed.length'),2);assert.notEqual(run('placed[1].stockKey'),firstStock);
+run("suggestMove();openLibrary('photos')");assert.equal(timers.size,0);
+run("shards=[];libraries=[{id:'original',name:'Original collection'}];activeLibrary='original';generate()");
+console.log('PASS selected-library-only proposals, all-library search, shared scan stock, duplicate commit rejection, wrong-library rejection, and cancellation on tab change');
 run('generate()');const originalCount=run('shards.length');
 const blueId=run("createLibrary('Blue ceramics')");assert.equal(run('inventoryForView().length'),0);assert.equal(run('libraries.length'),2);
 run("addLibraryPiece(activeLibrary,'Long triangle',4,1,'#718e9c',()=>.4);saveLibraries();refresh()");
@@ -100,6 +109,7 @@ const proposer=require('./proposer.js');
  console.log('PASS saved labels, success guidance, saved-library button, and duplicate-save prevention');
  console.log('PASS selectable internal-artifact warnings, clear save blockers, review gate, physical measurements, provenance, and storage restoration');
 })().catch(error=>{console.error(error);process.exitCode=1;});
+
 
 
 

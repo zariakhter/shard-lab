@@ -3,7 +3,7 @@
 const bounds=p=>({minX:Math.min(...p.map(v=>v.x)),minY:Math.min(...p.map(v=>v.y)),maxX:Math.max(...p.map(v=>v.x)),maxY:Math.max(...p.map(v=>v.y))});
 const angle=(a,b)=>Math.atan2(b.y-a.y,b.x-a.x)*180/Math.PI;
 function* search(shards,placed,width,height,gap,strategy,effort,rng,explore=false){
- const available=shards.filter(s=>!placed.some(p=>p.id===s.id));if(!available.length)return null;
+ const seen=new Set(),used=new Set(placed.map(p=>p.stockKey||p.id));const available=shards.filter(s=>{const key=s.stockKey||s.id;if(used.has(key)||seen.has(key))return false;seen.add(key);return true;});if(!available.length)return null;
  available.sort((a,b)=>strategy==='Smallest-first'?a.area-b.area:b.area-a.area);
  const obstacles=placed.map(s=>({...s,box:bounds(s.world)}));
  const envelope=placed.length?bounds(placed.flatMap(s=>s.world)):{maxX:0,maxY:0};

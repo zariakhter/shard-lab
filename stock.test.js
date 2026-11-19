@@ -1,0 +1,11 @@
+const assert=require('node:assert/strict'),S=require('./stock.js');
+const rect=(x,y,w=100,h=100)=>[{x,y},{x:x+w,y},{x:x+w,y:y+h},{x,y:y+h}];
+const scan=(id,x=20,y=20)=>({id,libraryId:'photos',photo:{sourceId:'source-'+id,fileName:'mat.png',originalPixelWidth:1000,originalPixelHeight:800,outlineOriginalPixels:rect(x,y)}});
+const a=scan('P1'),repeat=scan('P2',21,19),other=scan('P3',300,200),generated={id:'S1'},sameShapeDifferentPiece={id:'S2'};
+const map=S.groups([a,repeat,other,generated,sameShapeDifferentPiece]);assert.equal(map.get('P1'),map.get('P2'));assert.notEqual(map.get('P1'),map.get('P3'));
+assert.equal(S.available([a,repeat,other],[],map).length,2);assert.deepEqual(S.available([repeat,other],[a],map).map(s=>s.id),['P3']);assert.equal(S.available([a,repeat],[repeat],map).length,0);
+assert.equal(S.available([generated,sameShapeDifferentPiece],[],map).length,2);
+assert.equal(S.sameScan({...a,photo:{...a.photo,fileSha256:'first'}},{...repeat,photo:{...repeat.photo,fileSha256:'different'}}),false);
+assert.equal(S.sameScan({...a,photo:{...a.photo,fileSha256:'same'}},{...repeat,photo:{...repeat.photo,fileName:'renamed.png',fileSha256:'same'}}),true);
+assert.equal(S.sameScan({id:'x',photo:{outlineOriginalPixels:rect(0,0)}},{id:'y',photo:{outlineOriginalPixels:rect(0,0)}}),false);
+console.log('PASS repeated photo imports share finite stock, distinct pieces remain separate, source hashes distinguish photos, and cross-library use is enforced');

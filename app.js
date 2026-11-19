@@ -51,15 +51,16 @@ function generate(){
 }
 function message(s,type=''){$('status').textContent=s;$('status').className=type;}
 function verdict(){return G.validate(G.transform(selected.poly,preview.x,preview.y,selected.rotation),placed,W,H,gap);}
-function choose(shard){if(placed.some(s=>s.id===shard.id))return;manualControl();selected=shard;preview={x:W/2,y:H/2};refresh();check();}
+function choose(shard){if(!shard||!availableInventory().some(s=>s.id===shard.id))return;manualControl();selected=shard;preview={x:W/2,y:H/2};refresh();check();}
 function check(){if(!selected||!preview)return;const v=verdict();message(selected.id+' · '+selected.rotation+'° · '+v.reason,v.valid?'good':'bad');draw();}
-function refresh(){const area=placed.reduce((s,p)=>s+p.area,0),coverage=100*area/(W*H),visible=inventoryForView();$('coverage').innerHTML=coverage.toFixed(1)+'<span>%</span>';$('meter').style.width=coverage+'%';$('placed').textContent=placed.length+' placed';$('rejected').textContent=rejected;$('remaining').textContent=visible.filter(s=>!placed.some(p=>p.id===s.id)).length+' AVAILABLE';$('dimensions').textContent=imperial(W)+' × '+imperial(H);$('gap').disabled=placed.length>0;renderLibraries();
+function refresh(){const area=placed.reduce((s,p)=>s+p.area,0),coverage=100*area/(W*H),visible=inventoryForView();$('coverage').innerHTML=coverage.toFixed(1)+'<span>%</span>';$('meter').style.width=coverage+'%';$('placed').textContent=placed.length+' placed';$('rejected').textContent=rejected;$('remaining').textContent=availableInventory().length+' AVAILABLE';$('dimensions').textContent=imperial(W)+' × '+imperial(H);$('gap').disabled=placed.length>0;renderLibraries();$('proposalScope').textContent='Using: '+(activeLibrary==='all'?'All inventory':libraryName(activeLibrary))+' · '+availableInventory().length+' unused physical pieces';
   $('inventory').replaceChildren();visible.forEach(s=>{
-    const used=placed.some(p=>p.id===s.id),b=document.createElement('button');b.className='shard'+(used?' used':'')+(selected===s?' selected':'');b.disabled=used;
+    const used=isShardUsed(s),duplicate=!availableInventory().some(p=>p.id===s.id)&&!used,b=document.createElement('button');b.className='shard'+(used?' used':'')+(selected===s?' selected':'');b.disabled=used||duplicate;
     const xs=s.poly.map(p=>p.x),ys=s.poly.map(p=>p.y),width=s.widthMm??Math.max(...xs)-Math.min(...xs),height=s.heightMm??Math.max(...ys)-Math.min(...ys);
-    b.title=s.id+' · '+s.kind+' · '+width.toFixed(1)+' × '+height.toFixed(1)+' mm · '+s.area.toFixed(0)+' mm² · '+(used?'Placed':'Available');
+    b.title=s.id+' · '+s.kind+' · '+width.toFixed(1)+' × '+height.toFixed(1)+' mm · '+s.area.toFixed(0)+' mm² · '+(used?'Used — 0 remaining':duplicate?'Duplicate scan — shares the same physical piece':'Available — 1 remaining');
     b.innerHTML='<svg viewBox="'+(Math.min(...xs)-5)+' '+(Math.min(...ys)-5)+' '+(width+10)+' '+(height+10)+'" aria-hidden="true"><polygon points="'+s.poly.map(p=>p.x+','+p.y).join(' ')+'" fill="'+s.color+'" stroke="#41483c" stroke-width="1"/></svg><span>'+s.id+'<small>'+(width/25.4).toFixed(2)+' × '+(height/25.4).toFixed(2)+' in</small></span><small class="shard-metric">'+width.toFixed(1)+' × '+height.toFixed(1)+' mm</small>';
     if(/^data:image\/(webp|png);base64,[A-Za-z0-9+/=]+$/.test(s.thumbnail||''))b.innerHTML='<img class="photo-shard-image" alt="Photographed shard" src="'+s.thumbnail+'">'+b.innerHTML.slice(b.innerHTML.indexOf('</svg>')+6);
+    const quantity=document.createElement('small');quantity.className='library-source';quantity.textContent=used?'USED · 0 remaining':duplicate?'DUPLICATE SCAN · shared piece':'1 physical piece available';b.append(quantity);
     if(s.photo){const record=document.createElement('small');record.className='library-source';record.textContent='Photo scan · '+s.area.toFixed(1)+' mm² · '+(s.photo.calibration.mmPerPixelX).toFixed(3)+' mm/px';b.append(record);b.title+=' · Photo: '+s.photo.fileName+' · Perimeter '+s.perimeterMm.toFixed(1)+' mm';}
     if(activeLibrary==='all'){const source=document.createElement('small');source.className='library-source';source.textContent=libraryName(s.libraryId||'original');b.append(source);}
     b.onpointerdown=e=>{if(e.button!==0)return;choose(s);dragging=true;};$('inventory').append(b);
@@ -84,7 +85,7 @@ function move(e){if(!selected)return;const r=canvas.getBoundingClientRect();prev
 canvas.onpointerdown=e=>{if(selected){dragging=true;canvas.setPointerCapture(e.pointerId);move(e);canvas.focus();}};
 document.addEventListener('pointermove',e=>{if(dragging)move(e);});document.addEventListener('pointerup',()=>{dragging=false;});
 function rotate(amount){if(!selected)return;manualControl();selected.rotation=(selected.rotation+amount+360)%360;check();}
-function commit(){if(!selected||!preview)return;const v=verdict(),pos=Math.round(preview.x)+', '+Math.round(preview.y)+' mm',id=selected.id; journal.push('#'+(journal.length+1)+' '+id+' @ '+pos+' / '+selected.rotation+'° · '+proposalSource+' · '+(v.valid?'Accepted':v.reason));if(v.valid){placed.push({...selected,...preview,world:G.transform(selected.poly,preview.x,preview.y,selected.rotation)});selected=null;preview=null;message(id+' placed. Select another fragment.','good');}else{rejected++;message('Rejected · '+v.reason,'bad');}refresh();}
+function commit(){if(!selected||!preview)return;if(isShardUsed(selected)||!availableInventory().some(s=>s.id===selected.id)){const id=selected.id;selected=null;preview=null;message(id+' cannot be placed: it is already used, a duplicate scan, or outside the selected inventory.','bad');refresh();return false;}const v=verdict(),pos=Math.round(preview.x)+', '+Math.round(preview.y)+' mm',id=selected.id; journal.push('#'+(journal.length+1)+' '+id+' @ '+pos+' / '+selected.rotation+'° · '+proposalSource+' · '+(v.valid?'Accepted':v.reason));if(v.valid){placed.push({...selected,stockKey:stockKey(selected),...preview,world:G.transform(selected.poly,preview.x,preview.y,selected.rotation)});selected=null;preview=null;message(id+' placed. Select another fragment.','good');}else{rejected++;message('Rejected · '+v.reason,'bad');}refresh();}
 function cancel(){manualControl();selected=null;preview=null;dragging=false;message('Preview cancelled. Select a fragment to continue.');refresh();}
 $('left').onclick=()=>rotate(-15);$('right').onclick=()=>rotate(15);$('place').onclick=commit;$('cancel').onclick=cancel;
 $('undo').onclick=()=>{const s=placed.pop();if(s){journal.push('Undo · '+s.id+' returned to the library.');message(s.id+' returned to the library.');refresh();}};
@@ -95,20 +96,22 @@ $('inventory').addEventListener('click',e=>{if(e.detail!==0)return;const button=
 function suggestMove(){
   clearFinish();draw();
   clearTimeout(nextTimer);
-  const strategy=$('strategy').value,ticket=++searchId;
-  const args=[inventoryForView(),placed,W,H,gap,strategy,Number($('effort').value),searchRng,$('explore').checked&&!running];
+  const strategy=$('strategy').value,ticket=++searchId,scope=activeLibrary;
+  const args=[availableInventory(scope),placed,W,H,gap,strategy,Number($('effort').value),searchRng,$('explore').checked&&!running];
   $('suggest').disabled=true;$('pause').disabled=false;
   message('Searching remaining shards, rotations and small interior gaps…');
-  if(typeof requestAnimationFrame==='function')Proposer.suggestAsync(args,()=>ticket!==searchId).then(candidate=>{if(ticket===searchId)presentCandidate(candidate,strategy);}).catch(error=>{pauseSearch();message('Search failed: '+error.message,'bad');});
-  else presentCandidate(Proposer.suggest(...args),strategy);
+  if(typeof requestAnimationFrame==='function')Proposer.suggestAsync(args,()=>ticket!==searchId).then(candidate=>{if(ticket===searchId)presentCandidate(candidate,strategy,scope,ticket);}).catch(error=>{pauseSearch();message('Search failed: '+error.message,'bad');});
+  else presentCandidate(Proposer.suggest(...args),strategy,scope,ticket);
 }
-function presentCandidate(candidate,strategy){
+function presentCandidate(candidate,strategy,scope=activeLibrary,ticket=searchId){
+  if(ticket!==searchId||scope!==activeLibrary)return;
+  if(candidate&&!availableInventory(scope).some(s=>s.id===candidate.shard.id)){pauseSearch();message('That piece is no longer available. Request another unused piece.','bad');return;}
   if(!candidate){pauseSearch();showCompletion(true);return;}
   selected=candidate.shard;selected.rotation=candidate.rotation;preview={x:candidate.x,y:candidate.y};dragging=false;
-  proposalSource=strategy+(candidate.rescue?' / small-gap scan':candidate.exploratory?' / exploratory':' / edge fit');
+  proposalSource=strategy+' / '+(scope==='all'?'All inventory':libraryName(scope))+(candidate.rescue?' / small-gap scan':candidate.exploratory?' / exploratory':' / edge fit');
   refresh();message('Proposed · '+selected.id+' · '+proposalSource+' · '+selected.rotation+'°. Checking geometry…');
   $('suggest').disabled=true;$('pause').disabled=false;
-  proposalTimer=setTimeout(()=>{proposalTimer=null;commit();$('suggest').disabled=false;if(candidate.stalled){pauseSearch();showCompletion(false);}else if(running)nextTimer=setTimeout(suggestMove,200);else $('pause').disabled=true;},1200);
+  proposalTimer=setTimeout(()=>{proposalTimer=null;if(ticket!==searchId||scope!==activeLibrary)return;commit();$('suggest').disabled=false;if(candidate.stalled){pauseSearch();showCompletion(false);}else if(running)nextTimer=setTimeout(suggestMove,200);else $('pause').disabled=true;},1200);
 }
 $('suggest').onclick=()=>{pauseSearch();suggestMove();};
 $('run').onclick=()=>{pauseSearch();running=true;$('run').disabled=true;suggestMove();};

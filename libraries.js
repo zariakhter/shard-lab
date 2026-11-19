@@ -1,7 +1,13 @@
 'use strict';
 const LIBRARY_KEY='shard-lab-libraries-v1';
 let libraries=[{id:'original',name:'Original collection'}],activeLibrary='original',librarySerial=0,pieceSerial=0;
-function inventoryForView(){return activeLibrary==='all'?shards:shards.filter(s=>(s.libraryId||'original')===activeLibrary);}
+function inventoryForLibrary(id){return id==='all'?shards:shards.filter(s=>(s.libraryId||'original')===id);}
+function inventoryForView(){return inventoryForLibrary(activeLibrary);}
+let stockCacheArray=null,stockCacheLength=-1,stockCacheGroups;
+function stockGroups(){if(stockCacheArray!==shards||stockCacheLength!==shards.length){stockCacheArray=shards;stockCacheLength=shards.length;stockCacheGroups=StockInventory.groups(shards);}return stockCacheGroups;}
+function stockKey(s){return stockGroups().get(s.id)||s.stockKey||s.id;}
+function isShardUsed(s){return placed.some(p=>stockKey(p)===stockKey(s));}
+function availableInventory(id=activeLibrary){return StockInventory.available(inventoryForLibrary(id),placed,stockGroups());}
 function libraryName(id){return libraries.find(l=>l.id===id)?.name||'Original collection';}
 function restoredDimension(assigned,coordinates){const measured=Math.max(...coordinates)-Math.min(...coordinates);return Number.isFinite(assigned)&&Math.abs(assigned-measured)<1e-6?assigned:measured;}
 function saveLibraries(){
