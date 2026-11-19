@@ -105,3 +105,6 @@ This is a **2D geometric nesting simulation**, not a manufacturing or structural
 
 
 
+
+### Inspiration-guided placement
+Upload a JPEG, PNG or WebP in Study controls → Inspiration image (up to 20 MB / 65 megapixels). The image is analyzed locally into a color map; nothing is sent to an AI service. The whole image stretches to the bed proportions. With Match inspiration enabled, Suggest Next Move and Run automatically compare colors sampled inside each candidate polygon against the corresponding image region, testing positions and rotations before applying the normal geometry and stock checks. All selected-library and one-physical-piece rules still apply. Existing placements remain; reset the bed for a new composition. Colors, detail and similarity are limited by available shard colors, shapes and fixed physical sizes. This is a color/composition approximation, not semantic image recognition or a guaranteed optimal reconstruction. Inspiration is session-only; upload it again after refreshing.

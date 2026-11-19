@@ -14,3 +14,5 @@ canvas{box-sizing:content-box;aspect-ratio:auto;max-width:100%;flex:none}.canvas
 .scope-status{padding:10px;background:#e0e8d8;border-left:3px solid var(--green);font-size:11px;line-height:1.6}
 .completion.inventory-empty{text-align:center;padding:28px 20px;background:#efe2cc;border:2px solid #b5824b}.completion.inventory-empty strong{display:block;font:600 clamp(26px,4vw,48px) Georgia;letter-spacing:2px;color:#694b2d}.completion.inventory-empty p{max-width:540px;margin:12px auto 0}
 .guide-exports{margin:20px 0;padding:18px;border:1px solid #8d9f80;background:#e4ebdc;line-height:1.6}.guide-exports[hidden]{display:none}.guide-exports strong{font:20px Georgia}.guide-exports p{font-size:11px;margin:8px 0}.guide-exports button{margin:5px 5px 5px 0}
+
+.inspiration-controls{border-top:1px solid #c9cbbf;padding:18px 0}.inspiration-controls canvas{width:100%;height:auto;display:block;margin:12px 0;border:1px solid #c9cbbf}.inspiration-controls canvas[hidden]{display:none}

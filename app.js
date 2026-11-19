@@ -1,5 +1,6 @@
 'use strict';
 const G=Geometry,$=id=>document.getElementById(id),canvas=$('board'),ctx=canvas.getContext('2d');
+let inspiration=null,inspirationLoad=0;
 let W=400,H=300;const colors=['#bc7d63','#91a58e','#8fa7b4','#c3a15d','#ddd1b7'];
 let shards=[],placed=[],selected=null,preview=null,gap=3,rejected=0,journal=[],dragging=false;
 let proposalTimer=null,nextTimer=null,running=false,proposalSource='Manual',searchRng,searchId=0;
@@ -98,7 +99,7 @@ function suggestMove(){
   clearTimeout(nextTimer);
   const strategy=$('strategy').value,ticket=++searchId,scope=activeLibrary;
   const pool=availableInventory(scope);if(!pool.length){pauseSearch();showCompletion(true);return;}
-  const args=[pool,placed,W,H,gap,strategy,Number($('effort').value),searchRng,$('explore').checked&&!running];
+  const args=[pool,placed,W,H,gap,strategy,Number($('effort').value),searchRng,$('explore').checked&&!running,inspiration&&$('useInspiration').checked?inspiration:null];
   $('suggest').disabled=true;$('pause').disabled=false;
   message('Searching remaining shards, rotations and small interior gaps…');
   if(typeof requestAnimationFrame==='function')Proposer.suggestAsync(args,()=>ticket!==searchId).then(candidate=>{if(ticket===searchId)presentCandidate(candidate,strategy,scope,ticket);}).catch(error=>{pauseSearch();message('Search failed: '+error.message,'bad');});
@@ -109,7 +110,7 @@ function presentCandidate(candidate,strategy,scope=activeLibrary,ticket=searchId
   if(candidate&&!availableInventory(scope).some(s=>s.id===candidate.shard.id)){pauseSearch();message('That piece is no longer available. Request another unused piece.','bad');return;}
   if(!candidate){pauseSearch();showCompletion(true);return;}
   selected=candidate.shard;selected.rotation=candidate.rotation;preview={x:candidate.x,y:candidate.y};dragging=false;
-  proposalSource=strategy+' / '+(scope==='all'?'All inventory':libraryName(scope))+(candidate.rescue?' / small-gap scan':candidate.exploratory?' / exploratory':' / edge fit');
+  proposalSource=(inspiration&&$('useInspiration').checked?'Inspiration match / ':'')+strategy+' / '+(scope==='all'?'All inventory':libraryName(scope))+(candidate.rescue?' / small-gap scan':candidate.exploratory?' / exploratory':' / edge fit');
   refresh();message('Proposed · '+selected.id+' · '+proposalSource+' · '+selected.rotation+'°. Checking geometry…');
   $('suggest').disabled=true;$('pause').disabled=false;
   proposalTimer=setTimeout(()=>{proposalTimer=null;if(ticket!==searchId||scope!==activeLibrary)return;commit();$('suggest').disabled=false;if(!availableInventory(scope).length){pauseSearch();showCompletion(true);}else if(candidate.stalled){pauseSearch();showCompletion(false);}else if(running)nextTimer=setTimeout(suggestMove,200);else $('pause').disabled=true;},1200);
@@ -171,3 +172,16 @@ bindLibraryControls();if(typeof bindPhotoControls==='function')bindPhotoControls
 
 
 
+
+$('inspirationUpload').onchange=async event=>{
+ const file=event.target.files[0];if(!file)return;const ticket=++inspirationLoad;pauseSearch();
+ if(!['image/jpeg','image/png','image/webp'].includes(file.type)||file.size>20*1024*1024){$('inspirationStatus').textContent='Choose a JPEG, PNG or WebP under 20 MB.';event.target.value='';return;}
+ $('inspirationStatus').textContent='Analyzing inspiration colors and composition…';let url;
+ try{url=URL.createObjectURL(file);const image=new Image();await new Promise((resolve,reject)=>{image.onload=resolve;image.onerror=reject;image.src=url;});if(ticket!==inspirationLoad)return;
+ if(image.naturalWidth*image.naturalHeight>65000000)throw new Error('Image is too large. Choose an image below 65 megapixels.');
+ const preview=$('inspirationPreview'),context=preview.getContext('2d');context.fillStyle='#ffffff';context.fillRect(0,0,256,192);context.drawImage(image,0,0,256,192);const sample=document.createElement('canvas');sample.width=64;sample.height=64;const sc=sample.getContext('2d');sc.fillStyle='#ffffff';sc.fillRect(0,0,64,64);sc.drawImage(image,0,0,64,64);inspiration=Inspiration.create(sc.getImageData(0,0,64,64).data,64,64);
+ preview.hidden=false;$('useInspiration').disabled=false;$('useInspiration').checked=true;$('clearInspiration').hidden=false;$('inspirationStatus').textContent='Inspiration ready. Automatic placement now compares each rotated shard with the image beneath its proposed position. Existing placements stay in place; Reset panel for a new composition.';
+ }catch(error){if(ticket===inspirationLoad)$('inspirationStatus').textContent='Could not analyze image. '+(error.message||'Try another image.');}finally{if(url)URL.revokeObjectURL(url);event.target.value='';}
+};
+$('useInspiration').onchange=pauseSearch;
+$('clearInspiration').onclick=()=>{pauseSearch();inspirationLoad++;inspiration=null;$('inspirationPreview').hidden=true;$('useInspiration').checked=false;$('useInspiration').disabled=true;$('clearInspiration').hidden=true;$('inspirationStatus').textContent='Inspiration removed. Automatic placement uses your selected packing strategy.';};
