@@ -2,6 +2,7 @@
 const G=Geometry,$=id=>document.getElementById(id),canvas=$('board'),ctx=canvas.getContext('2d');
 let inspiration=null,inspirationLoad=0;
 let W=400,H=300;const colors=['#bc7d63','#91a58e','#8fa7b4','#c3a15d','#ddd1b7'];
+let redoStack=[];
 let shards=[],placed=[],selected=null,preview=null,gap=3,rejected=0,journal=[],dragging=false;
 let proposalTimer=null,nextTimer=null,running=false,proposalSource='Manual',searchRng,searchId=0;
 let finishProgress=0,baking=false,baked=false,bakeEpoch=0,fillerColor='#d7cbb4';
@@ -16,7 +17,7 @@ function applyBedSize(event){
   const n=values.map(Number),width=(n[0]*12+n[1])*25.4,height=(n[2]*12+n[3])*25.4;
   if(values.some(v=>v==='')||n.some(v=>!Number.isFinite(v)||v<0)||!Number.isInteger(n[0])||!Number.isInteger(n[2])||width<76.2-1e-8||height<76.2-1e-8||width>6096+1e-8||height>6096+1e-8){$('bedSizeError').textContent='Enter whole feet and nonnegative inches. Each total side must be between 3 inches and 20 feet.';return;}
   manualControl();W=width;H=height;$('bedSizeError').textContent='';
-  placed=[];selected=null;preview=null;rejected=0;journal=[];searchRng=random((Number($('seed').value)>>>0)^98765);refresh();
+  placed=[];redoStack=[];selected=null;preview=null;rejected=0;journal=[];searchRng=random((Number($('seed').value)>>>0)^98765);refresh();
   message('Bed resized to '+imperial(W)+' × '+imperial(H)+'. The same shards retain their assigned physical dimensions.','good');
 }
 function generate(){
@@ -47,14 +48,14 @@ function generate(){
   for(let i=0;i<80;i++)add(4+r()*5);
   for(let i=0;i<32;i++)add(12+r()*16,['Long sliver','Long triangle','Scalene triangle','Chipped triangle'][i%4]);
   shards.forEach(s=>s.libraryId='original');shards=shards.concat(otherPieces);activeLibrary='original';ensureLargeOriginalShards();saveLibraries();
-  placed=[];selected=null;preview=null;rejected=0;journal=[];$('gap').disabled=false;
+  placed=[];redoStack=[];selected=null;preview=null;rejected=0;journal=[];$('gap').disabled=false;
   message('New study · '+shards.length+' shards · ceramic area '+Math.round(total/(W*H)*100)+'% of bed. Best-fit searches edges and rotations.');refresh();
 }
 function message(s,type=''){$('status').textContent=s;$('status').className=type;}
 function verdict(){return G.validate(G.transform(selected.poly,preview.x,preview.y,selected.rotation),placed,W,H,gap);}
 function choose(shard){if(!shard||!availableInventory().some(s=>s.id===shard.id))return;manualControl();selected=shard;preview={x:W/2,y:H/2};refresh();check();}
 function check(){if(!selected||!preview)return;const v=verdict();message(selected.id+' · '+selected.rotation+'° · '+v.reason,v.valid?'good':'bad');draw();}
-function refresh(){const area=placed.reduce((s,p)=>s+p.area,0),coverage=100*area/(W*H),visible=inventoryForView(),remaining=availableInventory(),availableIds=new Set(remaining.map(s=>s.id));$('coverage').innerHTML=coverage.toFixed(1)+'<span>%</span>';$('meter').style.width=coverage+'%';$('placed').textContent=placed.length+' placed';$('rejected').textContent=rejected;$('remaining').textContent=remaining.length+' AVAILABLE';$('dimensions').textContent=imperial(W)+' × '+imperial(H);$('gap').disabled=placed.length>0;renderLibraries();$('proposalScope').textContent='Using: '+(activeLibrary==='all'?'All inventory':libraryName(activeLibrary))+' · '+availableInventory().length+' unused physical pieces';$('run').disabled=running||remaining.length===0;$('suggest').disabled=remaining.length===0||proposalTimer!==null;
+function refresh(){$('undo').disabled=placed.length===0;$('redo').disabled=redoStack.length===0;const area=placed.reduce((s,p)=>s+p.area,0),coverage=100*area/(W*H),visible=inventoryForView(),remaining=availableInventory(),availableIds=new Set(remaining.map(s=>s.id));$('coverage').innerHTML=coverage.toFixed(1)+'<span>%</span>';$('meter').style.width=coverage+'%';$('placed').textContent=placed.length+' placed';$('rejected').textContent=rejected;$('remaining').textContent=remaining.length+' AVAILABLE';$('dimensions').textContent=imperial(W)+' × '+imperial(H);$('gap').disabled=placed.length>0;renderLibraries();$('proposalScope').textContent='Using: '+(activeLibrary==='all'?'All inventory':libraryName(activeLibrary))+' · '+availableInventory().length+' unused physical pieces';$('run').disabled=running||remaining.length===0;$('suggest').disabled=remaining.length===0||proposalTimer!==null;
   $('inventory').replaceChildren();visible.forEach(s=>{
     const used=isShardUsed(s),duplicate=!availableIds.has(s.id)&&!used,b=document.createElement('button');b.className='shard'+(used?' used':'')+(selected===s?' selected':'');b.disabled=used||duplicate;
     const xs=s.poly.map(p=>p.x),ys=s.poly.map(p=>p.y),width=s.widthMm??Math.max(...xs)-Math.min(...xs),height=s.heightMm??Math.max(...ys)-Math.min(...ys);
@@ -86,11 +87,12 @@ function move(e){if(!selected)return;const r=canvas.getBoundingClientRect();prev
 canvas.onpointerdown=e=>{if(selected){dragging=true;canvas.setPointerCapture(e.pointerId);move(e);canvas.focus();}};
 document.addEventListener('pointermove',e=>{if(dragging)move(e);});document.addEventListener('pointerup',()=>{dragging=false;});
 function rotate(amount){if(!selected)return;manualControl();selected.rotation=(selected.rotation+amount+360)%360;check();}
-function commit(){if(!selected||!preview)return;if(isShardUsed(selected)||!availableInventory().some(s=>s.id===selected.id)){const id=selected.id;selected=null;preview=null;message(id+' cannot be placed: it is already used, a duplicate scan, or outside the selected inventory.','bad');refresh();return false;}const v=verdict(),pos=Math.round(preview.x)+', '+Math.round(preview.y)+' mm',id=selected.id; journal.push('#'+(journal.length+1)+' '+id+' @ '+pos+' / '+selected.rotation+'° · '+proposalSource+' · '+(v.valid?'Accepted':v.reason));if(v.valid){placed.push({...selected,stockKey:stockKey(selected),...preview,world:G.transform(selected.poly,preview.x,preview.y,selected.rotation)});selected=null;preview=null;message(id+' placed. Select another fragment.','good');}else{rejected++;message('Rejected · '+v.reason,'bad');}refresh();}
+function commit(){if(!selected||!preview)return;if(isShardUsed(selected)||!availableInventory().some(s=>s.id===selected.id)){const id=selected.id;selected=null;preview=null;message(id+' cannot be placed: it is already used, a duplicate scan, or outside the selected inventory.','bad');refresh();return false;}const v=verdict(),pos=Math.round(preview.x)+', '+Math.round(preview.y)+' mm',id=selected.id; journal.push('#'+(journal.length+1)+' '+id+' @ '+pos+' / '+selected.rotation+'° · '+proposalSource+' · '+(v.valid?'Accepted':v.reason));if(v.valid){redoStack=[];placed.push({...selected,stockKey:stockKey(selected),...preview,world:G.transform(selected.poly,preview.x,preview.y,selected.rotation)});selected=null;preview=null;message(id+' placed. Select another fragment.','good');}else{rejected++;message('Rejected · '+v.reason,'bad');}refresh();}
 function cancel(){manualControl();selected=null;preview=null;dragging=false;message('Preview cancelled. Select a fragment to continue.');refresh();}
 $('left').onclick=()=>rotate(-10);$('right').onclick=()=>rotate(10);$('place').onclick=commit;$('cancel').onclick=cancel;
-$('undo').onclick=()=>{const s=placed.pop();if(s){journal.push('Undo · '+s.id+' returned to the library.');message(s.id+' returned to the library.');refresh();}};
-$('reset').onclick=()=>{placed=[];selected=null;preview=null;rejected=0;journal=[];message('Panel reset. The same inventory is ready for another study.');refresh();};
+$('undo').onclick=()=>{selected=null;preview=null;dragging=false;const s=placed.pop();if(s){redoStack.push(s);journal.push('Undo · '+s.id+' returned to the library.');message(s.id+' returned to the library.');refresh();}};
+$('redo').onclick=()=>{const s=redoStack[redoStack.length-1];if(!s)return;const source=shards.find(p=>p.id===s.id);if(!source||isShardUsed(source)){message('Cannot redo: this physical shard is no longer available.','bad');return;}const v=G.validate(s.world,placed,W,H,gap);if(!v.valid){message('Cannot redo: '+v.reason,'bad');return;}redoStack.pop();placed.push(s);selected=null;preview=null;dragging=false;journal.push('Redo · '+s.id+' restored.');message(s.id+' restored to its previous position.','good');refresh();};
+$('reset').onclick=()=>{placed=[];redoStack=[];selected=null;preview=null;rejected=0;journal=[];message('Panel reset. The same inventory is ready for another study.');refresh();};
 $('regenerate').onclick=generate;$('gap').oninput=()=>{gap=Number($('gap').value);$('gapLabel').textContent=gap+' mm';check();};
 document.addEventListener('keydown',e=>{if(['INPUT','SELECT','BUTTON'].includes(e.target.tagName))return;if(e.key==='Escape'){cancel();return;}if(!selected)return;if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Enter','w','W','s','S','d','D','a','A','r','R'].includes(e.key))e.preventDefault();const step=e.shiftKey?10:1;if(e.key==='r'||e.key==='R')rotate(e.shiftKey?-15:15);if(e.key==='Enter')commit();if(e.key==='ArrowLeft')rotate(-10);if(e.key==='ArrowRight')rotate(10);if(preview){const key=e.key.toLowerCase();if(e.key==='ArrowUp'||key==='w')preview.y-=step;if(e.key==='ArrowDown'||key==='s')preview.y+=step;if(key==='a')preview.x-=step;if(key==='d')preview.x+=step;check();}});
 $('inventory').addEventListener('click',e=>{if(e.detail!==0)return;const button=e.target.closest('button');if(button)choose(inventoryForView()[Array.from($('inventory').children).indexOf(button)]);});
@@ -119,7 +121,7 @@ $('suggest').onclick=()=>{pauseSearch();suggestMove();};
 $('run').onclick=()=>{pauseSearch();running=true;$('run').disabled=true;suggestMove();};
 $('pause').onclick=()=>{pauseSearch();if(selected&&preview)check();};
 $('effort').oninput=()=>{$('effortLabel').textContent=$('effort').value+' samples / shard';};
-for(const id of ['undo','reset','place']){const action=$(id).onclick;$(id).onclick=()=>{pauseSearch();if(id!=='place')clearFinish();if(id==='reset'){proposalSource='Manual';searchRng=random((Number($('seed').value)>>>0)^98765);}action();};}
+for(const id of ['undo','redo','reset','place']){const action=$(id).onclick;$(id).onclick=()=>{pauseSearch();if(id!=='place')clearFinish();if(id==='reset'){proposalSource='Manual';searchRng=random((Number($('seed').value)>>>0)^98765);}action();};}
 const boardAction=canvas.onpointerdown;canvas.onpointerdown=e=>{manualControl();boardAction(e);};
 document.addEventListener('keydown',e=>{if(!['INPUT','SELECT','BUTTON'].includes(e.target.tagName)&&['Enter','Escape','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','w','W','s','S','d','D','a','A','r','R'].includes(e.key))manualControl();},true);
 $('strategy').onchange=pauseSearch;
