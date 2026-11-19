@@ -91,10 +91,13 @@ const proposer=require('./proposer.js');
  element('photoReview').checked=true;await run('savePhotoPieces()');assert.equal(run('shards.length'),countBefore+1);assert.equal(run('shards.at(-1).libraryId'),blueId);assert.ok(Math.abs(run('shards.at(-1).widthMm')-50.8)<1e-8);assert.ok(Math.abs(run('shards.at(-1).heightMm')-76.2)<1e-8);assert.equal(run('shards.at(-1).photo.sourceId'),'fixture-photo');assert.equal(run('shards.at(-1).photo.calibration.referenceWidthMm'),254);assert.ok(Math.abs(run('shards.at(-1).photo.outlineOriginalPixels[0].x')-20)<1e-8);
  const measuredPoly=run('JSON.stringify(shards.at(-1).poly)');run('initializeLibraries()');assert.equal(run('JSON.stringify(shards.at(-1).poly)'),measuredPoly);assert.equal(run('shards.at(-1).photo.reviewed'),true);
  assert.equal(run('shards.at(-1).photo.internalRegionsIgnored'),true);
+ assert.ok(element('photoSaveHelp').textContent.includes('already saved'));assert.equal(element('photoViewLibrary').hidden,false);assert.ok(run('photoState.pieces[0].savedId'));
+ const savedCount=run('shards.length');run('photoState.pieces[0].selected=true');await run('savePhotoPieces()');assert.equal(run('shards.length'),savedCount);run('photoState.pieces[0].selected=false');
  const retainedOutlines=run('JSON.stringify(photoState.pieces)');element('photoNewLibraryName').value='New photo collection';element('photoNewLibraryForm').onsubmit({preventDefault(){}});const newPhotoLibrary=element('photoLibrary').value;assert.equal(run('libraryName(activeLibrary)'),'New photo collection');assert.equal(run('JSON.stringify(photoState.pieces)'),retainedOutlines);assert.equal(element('photoReview').checked,true);
- run('photoState.pieces[0].selected=true;renderPhotoResults()');await run('savePhotoPieces()');assert.equal(run('shards.at(-1).libraryId'),newPhotoLibrary);assert.equal(run('shards.at(-1).photo.sourceId'),'fixture-photo');
+ run('photoState.pieces.push({...photoState.pieces[0],savedId:undefined,savedLibraryId:undefined,selected:true});renderPhotoResults()');await run('savePhotoPieces()');assert.equal(run('shards.at(-1).libraryId'),newPhotoLibrary);assert.equal(run('shards.at(-1).photo.sourceId'),'fixture-photo');
  element('photoNewLibraryName').value='New photo collection';element('photoNewLibraryForm').onsubmit({preventDefault(){}});assert.ok(element('photoNewLibraryError').textContent.includes('already exists'));
  console.log('PASS creating and selecting a library inside importer preserves photo and saves to the chosen destination');
+ console.log('PASS saved labels, success guidance, saved-library button, and duplicate-save prevention');
  console.log('PASS selectable internal-artifact warnings, clear save blockers, review gate, physical measurements, provenance, and storage restoration');
 })().catch(error=>{console.error(error);process.exitCode=1;});
 

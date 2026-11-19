@@ -18,6 +18,8 @@ The original photo is kept in IndexedDB (`shard-lab-photos`) in this browser; li
 
 Measurements are estimates of a planar silhouette. Incorrect reference spans, camera lens distortion, uneven illumination, shadows, similar mat/shard colors, touching pieces, thickness and curved shards reduce accuracy. Four-point correction handles a planar angled photograph but does not correct lens distortion or parallax from raised pieces. This is not metrology or a fabrication guarantee. Minimum pixel resolution and polygon simplification also limit small-detail accuracy. Run `node photo-core.test.js` for calibration, pixel segmentation/grid removal, concavity, area/dimension, clipping, and manual-outline tests.
 
+After saving, rows display **SAVED** with the piece ID and library name, and **View saved library** opens that library. Saved rows cannot be submitted twice from the same import. Clearing their checkboxes after a successful save does not remove them from the library.
+
 ## Shard libraries
 
 The initial shards belong to **Original collection**. Library tabs filter both the visible inventory and automatic proposals. **All inventory** combines all libraries; cards identify their source library. Switching tabs cancels pending search/preview but preserves every placed shard and checks collisions against the entire bed.
