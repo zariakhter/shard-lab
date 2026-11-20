@@ -106,3 +106,6 @@ This is a **2D geometric nesting simulation**, not a manufacturing or structural
 
 
 
+
+## Opening animation
+The opening screen plays `intro-animation.mp4` silently on a loop. Press Start to enter the workspace; this pauses the video and focuses the panel for keyboard controls. If autoplay is blocked, video controls become available and Start remains usable. Each fresh page load shows the intro.
